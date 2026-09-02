@@ -1,0 +1,9 @@
+[
+  {
+    "id": 1,
+    "proyectoId": 1,
+    "monto": 40000,
+    "descripcion": "Compra de mercadería",
+    "fecha": "2026-09-02"
+  }
+]

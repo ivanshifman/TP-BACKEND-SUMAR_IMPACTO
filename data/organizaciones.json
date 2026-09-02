@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "nombre": "Comedor Comunitario Los Girasoles",
+    "descripcion": "Comedor comunitario ubicado en el barrio Los Girasoles, brinda dos comidas diarias a familias del sector."
+  },
+  {
+    "id": 2,
+    "nombre": "Fundación Semillas de Futuro",
+    "descripcion": "Fundación dedicada al apoyo escolar y la entrega de material educativo a niños en situación de vulnerabilidad."
+  }
+]

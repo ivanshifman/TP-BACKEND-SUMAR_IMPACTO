@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "nombre": "María Fernández",
+    "email": "maria.fernandez@example.com",
+    "tipo": "individual"
+  },
+  {
+    "id": 2,
+    "nombre": "Supermercados del Sur S.A.",
+    "email": "rse@supersur.com.ar",
+    "tipo": "corporativo"
+  },
+  {
+    "id": 3,
+    "nombre": "Jorge Alberto Pérez",
+    "email": "jorge.perez@example.com",
+    "tipo": "individual"
+  }
+]

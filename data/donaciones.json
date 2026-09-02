@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "donanteId": 1,
+    "proyectoId": 1,
+    "monto": 50000,
+    "fecha": "2026-08-01",
+    "utilizada": true
+  },
+  {
+    "id": 2,
+    "donanteId": 2,
+    "proyectoId": 1,
+    "monto": 200000,
+    "fecha": "2026-08-05",
+    "utilizada": false
+  },
+  {
+    "id": 3,
+    "donanteId": 3,
+    "proyectoId": 2,
+    "monto": 80000,
+    "fecha": "2026-08-10",
+    "utilizada": false
+  }
+]

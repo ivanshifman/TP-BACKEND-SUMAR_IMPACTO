@@ -1,0 +1,54 @@
+extends ../layout
+
+block contenido
+  a.volver(href="/") ← Volver al listado de proyectos
+
+  h1= proyecto.nombre
+  p.organizacion Organización responsable: #{organizacion ? organizacion.nombre : "No encontrada"}
+
+  section.resumen
+    div.tarjeta
+      span.etiqueta Total donado
+      span.valor= "$" + totalDonado.toLocaleString("es-AR")
+    div.tarjeta
+      span.etiqueta Total gastado
+      span.valor= "$" + totalGastado.toLocaleString("es-AR")
+    div.tarjeta.destacada
+      span.etiqueta Saldo disponible
+      span.valor= "$" + saldoDisponible.toLocaleString("es-AR")
+
+  h2 Donaciones recibidas
+  if donaciones.length === 0
+    p.vacio Este proyecto todavía no recibió donaciones.
+  else
+    table.tabla
+      thead
+        tr
+          th Donante
+          th Monto
+          th Fecha
+          th Utilizada
+      tbody
+        each donacion in donaciones
+          tr
+            td= donacion.donanteNombre
+            td= "$" + donacion.monto.toLocaleString("es-AR")
+            td= donacion.fecha
+            td= donacion.utilizada ? "Sí" : "No"
+
+  h2 Gastos registrados
+  if gastos.length === 0
+    p.vacio Este proyecto todavía no registró gastos.
+  else
+    table.tabla
+      thead
+        tr
+          th Descripción
+          th Monto
+          th Fecha
+      tbody
+        each gasto in gastos
+          tr
+            td= gasto.descripcion
+            td= "$" + gasto.monto.toLocaleString("es-AR")
+            td= gasto.fecha

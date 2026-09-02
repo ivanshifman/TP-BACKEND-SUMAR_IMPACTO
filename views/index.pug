@@ -1,0 +1,27 @@
+extends layout
+
+block contenido
+  h1 Proyectos activos
+
+  if proyectos.length === 0
+    p.vacio No hay proyectos cargados todavía.
+  else
+    table.tabla
+      thead
+        tr
+          th Proyecto
+          th Organización
+          th Total donado
+          th Total gastado
+          th Saldo disponible
+          th
+      tbody
+        each proyecto in proyectos
+          tr
+            td= proyecto.nombre
+            td= proyecto.organizacionNombre
+            td= "$" + proyecto.totalDonado.toLocaleString("es-AR")
+            td= "$" + proyecto.totalGastado.toLocaleString("es-AR")
+            td.saldo= "$" + proyecto.saldoDisponible.toLocaleString("es-AR")
+            td
+              a.boton(href=`/proyectos/${proyecto.id}`) Ver detalle

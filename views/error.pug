@@ -1,0 +1,7 @@
+extends layout
+
+block contenido
+  div.error
+    h1= "Error " + statusCode
+    p= mensaje
+    a.boton(href="/") Volver al inicio

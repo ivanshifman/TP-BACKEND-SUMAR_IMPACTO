@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "nombre": "Comedor de invierno 2026",
+    "organizacionId": 1,
+    "montoObjetivo": 500000
+  },
+  {
+    "id": 2,
+    "nombre": "Kits escolares 2026",
+    "organizacionId": 2,
+    "montoObjetivo": 300000
+  }
+]

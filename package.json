@@ -1,0 +1,26 @@
+{
+  "name": "sumarimpacto-backend",
+  "version": "1.0.0",
+  "description": "Backend de SumarImpacto - Trabajo Practico Integrador de Desarrollo Web Backend (DSWB) - IFTS N29",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "sumarimpacto",
+    "backend",
+    "express",
+    "pug",
+    "dswb"
+  ],
+  "author": "Ivan Ezequiel Shifman, Angel Sabato, Flavio Rinaldi, Marcelo Zarate",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.22.2",
+    "pug": "^3.0.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

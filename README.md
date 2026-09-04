@@ -28,7 +28,7 @@ El servidor levanta en `http://localhost:3000`.
 
 ## Estructura del proyecto
 
-```
+```text
 sumarimpacto-backend/
 ├── server.js
 ├── data/                  # Persistencia en archivos JSON
@@ -50,7 +50,7 @@ Ver el detalle completo, con ejemplos de solicitud y respuesta, en la documentac
 de la entrega (`DSWB_2A_CASO5_2C26.pdf`).
 
 | Recurso | Endpoints |
-|---|---|
+| --- | --- |
 | Donantes | `GET/POST /api/donantes`, `GET/PUT/DELETE /api/donantes/:id` |
 | Organizaciones | `GET/POST /api/organizaciones`, `GET/PUT/DELETE /api/organizaciones/:id` |
 | Proyectos | `GET/POST /api/proyectos`, `GET/PUT/DELETE /api/proyectos/:id`, `GET /api/proyectos/:id/saldo`, `GET /api/proyectos/:id/donaciones`, `GET /api/proyectos/:id/gastos` |
@@ -59,11 +59,11 @@ de la entrega (`DSWB_2A_CASO5_2C26.pdf`).
 
 ## Bibliografía
 
-- Express.js. *Using template engines with Express*. https://expressjs.com/es/guide/using-template-engines/
-- MDN Web Docs. *Express Tutorial Part 2: Creating a skeleton website*. https://developer.mozilla.org/es/docs/Learn/Server-side/Express_Nodejs/skeleton_website
-- Pug. *Documentación oficial*. https://pugjs.org/api/getting-started.html
-- Node.js. *Documentación oficial*. https://nodejs.org/es/docs
-- VidaMRR. *Tutorial de Pug para hacer plantillas dinámicas | Curso de Node.js + Express.js*. https://www.youtube.com/watch?v=K7jysT0T8QM
+- Express.js. *Using template engines with Express*. <https://expressjs.com/es/guide/using-template-engines/>
+- MDN Web Docs. *Express Tutorial Part 2: Creating a skeleton website*. <https://developer.mozilla.org/es/docs/Learn/Server-side/Express_Nodejs/skeleton_website>
+- Pug. *Documentación oficial*. <https://pugjs.org/api/getting-started.html>
+- Node.js. *Documentación oficial*. <https://nodejs.org/es/docs>
+- VidaMRR. *Tutorial de Pug para hacer plantillas dinámicas | Curso de Node.js + Express.js*. <https://www.youtube.com/watch?v=K7jysT0T8QM>
 
 ## Integrantes
 

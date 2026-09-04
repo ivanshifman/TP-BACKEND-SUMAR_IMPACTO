@@ -3,7 +3,6 @@ const donacionRepository = require("../repositories/DonacionRepository");
 const gastoRepository = require("../repositories/GastoRepository");
 const proyectoService = require("../services/ProyectoService");
 const Proyecto = require("../models/Proyecto");
-const ApiError = require("../utils/ApiError");
 const httpStatus = require("../utils/httpStatus");
 const asyncHandler = require("../utils/asyncHandler");
 

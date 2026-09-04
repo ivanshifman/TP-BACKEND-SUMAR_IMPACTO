@@ -10,12 +10,12 @@ class Gasto {
   }
 
   _validar() {
-    if (this.proyectoId === undefined || this.proyectoId === null || isNaN(Number(this.proyectoId))) {
+    if (this.proyectoId === undefined || this.proyectoId === null || Number.isNaN(Number(this.proyectoId))) {
       throw ApiError.badRequest("El campo 'proyectoId' es obligatorio y debe ser numérico.");
     }
     this.proyectoId = Number(this.proyectoId);
 
-    if (this.monto === undefined || this.monto === null || isNaN(Number(this.monto)) || Number(this.monto) <= 0) {
+    if (this.monto === undefined || this.monto === null || Number.isNaN(Number(this.monto)) || Number(this.monto) <= 0) {
       throw ApiError.badRequest("El campo 'monto' es obligatorio y debe ser un número mayor a cero.");
     }
     this.monto = Number(this.monto);

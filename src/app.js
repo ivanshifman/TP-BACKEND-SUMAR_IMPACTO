@@ -1,5 +1,5 @@
 const express = require("express");
-const path = require("path");
+const path = require("node:path");
 
 const requestLogger = require("./middleware/requestLogger");
 const notFound = require("./middleware/notFound");
@@ -8,6 +8,7 @@ const apiRoutes = require("./routes/index");
 const viewsRoutes = require("./routes/views.routes");
 
 const app = express();
+app.disable("x-powered-by");
 
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "..", "views"));

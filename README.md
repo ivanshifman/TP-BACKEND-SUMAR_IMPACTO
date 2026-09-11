@@ -50,7 +50,7 @@ Todas las vistas son de solo lectura (visualización de datos); la carga y modif
 de datos se realiza a través de la API REST.
 
 | Ruta | Descripción |
-|---|---|
+| --- | --- |
 | `GET /` | Listado de proyectos con su saldo disponible |
 | `GET /proyectos/:id` | Detalle de un proyecto: donaciones y gastos |
 | `GET /donantes` | Listado de donantes con el total donado por cada uno |
@@ -62,7 +62,7 @@ de datos se realiza a través de la API REST.
 ## Endpoints principales
 
 | Recurso | Endpoints |
-|---|---|
+| --- | --- |
 | Donantes | `GET/POST /api/donantes`, `GET/PUT/DELETE /api/donantes/:id` |
 | Organizaciones | `GET/POST /api/organizaciones`, `GET/PUT/DELETE /api/organizaciones/:id` |
 | Proyectos | `GET/POST /api/proyectos`, `GET/PUT/DELETE /api/proyectos/:id`, `GET /api/proyectos/:id/saldo`, `GET /api/proyectos/:id/donaciones`, `GET /api/proyectos/:id/gastos` |

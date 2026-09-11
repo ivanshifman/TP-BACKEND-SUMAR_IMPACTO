@@ -71,11 +71,11 @@ de datos se realiza a través de la API REST.
 
 ## Bibliografía
 
-- Express.js. *Using template engines with Express*. https://expressjs.com/es/guide/using-template-engines/
-- MDN Web Docs. *Express Tutorial Part 2: Creating a skeleton website*. https://developer.mozilla.org/es/docs/Learn/Server-side/Express_Nodejs/skeleton_website
-- Pug. *Documentación oficial*. https://pugjs.org/api/getting-started.html
-- Node.js. *Documentación oficial*. https://nodejs.org/es/docs
-- VidaMRR. *Tutorial de Pug para hacer plantillas dinámicas | Curso de Node.js + Express.js*. https://www.youtube.com/watch?v=K7jysT0T8QM
+- Express.js. [*Using template engines with Express*](https://expressjs.com/es/guide/using-template-engines/).
+- MDN Web Docs. [*Express Tutorial Part 2: Creating a skeleton website*](https://developer.mozilla.org/es/docs/Learn/Server-side/Express_Nodejs/skeleton_website).
+- Pug. [*Documentación oficial*](https://pugjs.org/api/getting-started.html).
+- Node.js. [*Documentación oficial*](https://nodejs.org/es/docs).
+- VidaMRR. [*Tutorial de Pug para hacer plantillas dinámicas | Curso de Node.js + Express.js*](https://www.youtube.com/watch?v=K7jysT0T8QM).
 
 ## Integrantes
 

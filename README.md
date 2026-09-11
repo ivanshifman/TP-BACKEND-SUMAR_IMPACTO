@@ -28,7 +28,7 @@ El servidor levanta en `http://localhost:3000`.
 
 ## Estructura del proyecto
 
-```
+```text
 sumarimpacto-backend/
 ├── server.js
 ├── data/                  # Persistencia en archivos JSON

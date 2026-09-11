@@ -1,0 +1,23 @@
+extends ../layout
+
+block contenido
+  h1 Organizaciones
+
+  if organizaciones.length === 0
+    p.vacio No hay organizaciones cargadas todavía.
+  else
+    table.tabla
+      thead
+        tr
+          th Nombre
+          th Descripción
+          th Proyectos
+          th
+      tbody
+        each organizacion in organizaciones
+          tr
+            td= organizacion.nombre
+            td= organizacion.descripcion
+            td= organizacion.cantidadProyectos
+            td
+              a.boton(href=`/organizaciones/${organizacion.id}`) Ver detalle

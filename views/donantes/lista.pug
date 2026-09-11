@@ -1,0 +1,27 @@
+extends ../layout
+
+block contenido
+  h1 Donantes
+
+  if donantes.length === 0
+    p.vacio No hay donantes cargados todavía.
+  else
+    table.tabla
+      thead
+        tr
+          th Nombre
+          th Tipo
+          th Email
+          th Cantidad de donaciones
+          th Total donado
+          th
+      tbody
+        each donante in donantes
+          tr
+            td= donante.nombre
+            td= donante.tipo === "corporativo" ? "Corporativo" : "Individual"
+            td= donante.email
+            td= donante.cantidadDonaciones
+            td= "$" + donante.totalDonado.toLocaleString("es-AR")
+            td
+              a.boton(href=`/donantes/${donante.id}`) Ver detalle

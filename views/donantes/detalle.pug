@@ -1,0 +1,31 @@
+extends ../layout
+
+block contenido
+  a.volver(href="/donantes") ← Volver al listado de donantes
+
+  h1= donante.nombre
+
+  .ficha
+    span.etiqueta Tipo de donante
+    span.valor-grande= donante.tipo === "corporativo" ? "Corporativo" : "Individual"
+    p Email: #{donante.email}
+    p Total donado: #[strong= "$" + totalDonado.toLocaleString("es-AR")]
+
+  h2 Historial de donaciones
+  if donaciones.length === 0
+    p.vacio Este donante todavía no registró donaciones.
+  else
+    table.tabla
+      thead
+        tr
+          th Proyecto
+          th Monto
+          th Fecha
+          th Utilizada
+      tbody
+        each donacion in donaciones
+          tr
+            td= donacion.proyectoNombre
+            td= "$" + donacion.monto.toLocaleString("es-AR")
+            td= donacion.fecha
+            td= donacion.utilizada ? "Sí" : "No"

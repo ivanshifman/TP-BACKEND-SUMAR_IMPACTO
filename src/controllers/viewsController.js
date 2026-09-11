@@ -51,4 +51,80 @@ const detalleProyecto = asyncHandler((req, res) => {
   });
 });
 
-module.exports = { inicio, detalleProyecto };
+const listarDonantes = asyncHandler((req, res) => {
+  const donaciones = donacionRepository.findAll();
+  const donantes = donanteRepository.findAll().map((donante) => {
+    const propias = donaciones.filter((d) => d.donanteId === donante.id);
+    const totalDonado = propias.reduce((acc, d) => acc + d.monto, 0);
+    return { ...donante, cantidadDonaciones: propias.length, totalDonado };
+  });
+
+  res.render("donantes/lista", { titulo: "SumarImpacto - Donantes", donantes });
+});
+
+const detalleDonante = asyncHandler((req, res) => {
+  const donante = donanteRepository.findById(req.params.id);
+  if (!donante) {
+    throw ApiError.notFound(`No existe un donante con id ${req.params.id}.`);
+  }
+  const proyectos = proyectoRepository.findAll();
+  const donaciones = donacionRepository.findByDonante(donante.id).map((donacion) => {
+    const proyecto = proyectos.find((p) => p.id === donacion.proyectoId);
+    return { ...donacion, proyectoNombre: proyecto ? proyecto.nombre : "Sin proyecto asignado" };
+  });
+  const totalDonado = donaciones.reduce((acc, d) => acc + d.monto, 0);
+
+  res.render("donantes/detalle", {
+    titulo: `SumarImpacto - ${donante.nombre}`,
+    donante,
+    donaciones,
+    totalDonado,
+  });
+});
+
+const listarOrganizaciones = asyncHandler((req, res) => {
+  const proyectos = proyectoRepository.findAll();
+  const organizaciones = organizacionRepository.findAll().map((organizacion) => ({
+    ...organizacion,
+    cantidadProyectos: proyectos.filter((p) => p.organizacionId === organizacion.id).length,
+  }));
+
+  res.render("organizaciones/lista", { titulo: "SumarImpacto - Organizaciones", organizaciones });
+});
+
+const detalleOrganizacion = asyncHandler((req, res) => {
+  const organizacion = organizacionRepository.findById(req.params.id);
+  if (!organizacion) {
+    throw ApiError.notFound(`No existe una organización con id ${req.params.id}.`);
+  }
+  const proyectos = proyectoRepository.findByOrganizacion(organizacion.id).map((proyecto) => {
+    const { saldoDisponible } = proyectoService.calcularSaldoDisponible(proyecto.id);
+    return { ...proyecto, saldoDisponible };
+  });
+
+  res.render("organizaciones/detalle", {
+    titulo: `SumarImpacto - ${organizacion.nombre}`,
+    organizacion,
+    proyectos,
+  });
+});
+
+const listarGastos = asyncHandler((req, res) => {
+  const proyectos = proyectoRepository.findAll();
+  const gastos = gastoRepository.findAll().map((gasto) => {
+    const proyecto = proyectos.find((p) => p.id === gasto.proyectoId);
+    return { ...gasto, proyectoNombre: proyecto ? proyecto.nombre : "Proyecto no encontrado" };
+  });
+
+  res.render("gastos/lista", { titulo: "SumarImpacto - Gastos", gastos });
+});
+
+module.exports = {
+  inicio,
+  detalleProyecto,
+  listarDonantes,
+  detalleDonante,
+  listarOrganizaciones,
+  detalleOrganizacion,
+  listarGastos,
+};

@@ -23,12 +23,12 @@ npm start
 
 El servidor levanta en `http://localhost:3000`.
 
-- Interfaz web: `http://localhost:3000/`
+- Interfaz web (solo lectura): `http://localhost:3000/`, `/donantes`, `/organizaciones`, `/gastos`
 - API REST: `http://localhost:3000/api/...`
 
 ## Estructura del proyecto
 
-```text
+```
 sumarimpacto-backend/
 ├── server.js
 ├── data/                  # Persistencia en archivos JSON
@@ -41,16 +41,28 @@ sumarimpacto-backend/
 │   ├── routes/            # Definición de rutas
 │   ├── middleware/        # Logger, 404 y manejo centralizado de errores
 │   └── utils/             # ApiError, códigos HTTP, asyncHandler
-└── views/                 # Vistas Pug (inicio, detalle de proyecto, error)
+└── views/                 # Vistas Pug: proyectos, donantes, organizaciones, gastos (error)
 ```
+
+## Vistas web disponibles
+
+Todas las vistas son de solo lectura (visualización de datos); la carga y modificación
+de datos se realiza a través de la API REST.
+
+| Ruta | Descripción |
+|---|---|
+| `GET /` | Listado de proyectos con su saldo disponible |
+| `GET /proyectos/:id` | Detalle de un proyecto: donaciones y gastos |
+| `GET /donantes` | Listado de donantes con el total donado por cada uno |
+| `GET /donantes/:id` | Detalle de un donante: historial de donaciones |
+| `GET /organizaciones` | Listado de organizaciones con su cantidad de proyectos |
+| `GET /organizaciones/:id` | Detalle de una organización: sus proyectos y saldo |
+| `GET /gastos` | Listado global de todos los gastos registrados |
 
 ## Endpoints principales
 
-Ver el detalle completo, con ejemplos de solicitud y respuesta, en la documentación
-de la entrega (`DSWB_2A_CASO5_2C26.pdf`).
-
 | Recurso | Endpoints |
-| --- | --- |
+|---|---|
 | Donantes | `GET/POST /api/donantes`, `GET/PUT/DELETE /api/donantes/:id` |
 | Organizaciones | `GET/POST /api/organizaciones`, `GET/PUT/DELETE /api/organizaciones/:id` |
 | Proyectos | `GET/POST /api/proyectos`, `GET/PUT/DELETE /api/proyectos/:id`, `GET /api/proyectos/:id/saldo`, `GET /api/proyectos/:id/donaciones`, `GET /api/proyectos/:id/gastos` |
@@ -59,11 +71,11 @@ de la entrega (`DSWB_2A_CASO5_2C26.pdf`).
 
 ## Bibliografía
 
-- Express.js. *Using template engines with Express*. <https://expressjs.com/es/guide/using-template-engines/>
-- MDN Web Docs. *Express Tutorial Part 2: Creating a skeleton website*. <https://developer.mozilla.org/es/docs/Learn/Server-side/Express_Nodejs/skeleton_website>
-- Pug. *Documentación oficial*. <https://pugjs.org/api/getting-started.html>
-- Node.js. *Documentación oficial*. <https://nodejs.org/es/docs>
-- VidaMRR. *Tutorial de Pug para hacer plantillas dinámicas | Curso de Node.js + Express.js*. <https://www.youtube.com/watch?v=K7jysT0T8QM>
+- Express.js. *Using template engines with Express*. https://expressjs.com/es/guide/using-template-engines/
+- MDN Web Docs. *Express Tutorial Part 2: Creating a skeleton website*. https://developer.mozilla.org/es/docs/Learn/Server-side/Express_Nodejs/skeleton_website
+- Pug. *Documentación oficial*. https://pugjs.org/api/getting-started.html
+- Node.js. *Documentación oficial*. https://nodejs.org/es/docs
+- VidaMRR. *Tutorial de Pug para hacer plantillas dinámicas | Curso de Node.js + Express.js*. https://www.youtube.com/watch?v=K7jysT0T8QM
 
 ## Integrantes
 

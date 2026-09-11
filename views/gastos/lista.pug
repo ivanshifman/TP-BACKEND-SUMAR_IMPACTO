@@ -1,0 +1,23 @@
+extends ../layout
+
+block contenido
+  h1 Gastos registrados
+
+  if gastos.length === 0
+    p.vacio Todavía no se registraron gastos en ningún proyecto.
+  else
+    table.tabla
+      thead
+        tr
+          th Proyecto
+          th Descripción
+          th Monto
+          th Fecha
+      tbody
+        each gasto in gastos
+          tr
+            td
+              a(href=`/proyectos/${gasto.proyectoId}`)= gasto.proyectoNombre
+            td= gasto.descripcion
+            td= "$" + gasto.monto.toLocaleString("es-AR")
+            td= gasto.fecha

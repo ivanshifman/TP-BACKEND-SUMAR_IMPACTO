@@ -1,8 +1,8 @@
-class ApiError extends Error {
+export class ApiError extends Error {
   /**
    * @param {number} statusCode
    * @param {string} message
-   * @param {object} [details]
+   * @param {object|string[]} [details]
    */
   constructor(statusCode, message, details = null) {
     super(message);
@@ -24,4 +24,4 @@ class ApiError extends Error {
   }
 }
 
-module.exports = ApiError;
+export default ApiError;

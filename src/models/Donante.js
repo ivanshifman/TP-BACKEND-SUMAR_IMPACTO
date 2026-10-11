@@ -1,26 +1,35 @@
-const ApiError = require("../utils/ApiError");
+import mongoose from "mongoose";
+
+const { Schema, model } = mongoose;
 
 const TIPOS_VALIDOS = ["individual", "corporativo"];
 
-class Donante {
-  constructor({ nombre, email, tipo }) {
-    this.nombre = nombre;
-    this.email = email;
-    this.tipo = tipo;
-    this._validar();
-  }
+const donanteSchema = new Schema(
+  {
+    nombre: {
+      type: String,
+      required: [true, "El campo 'nombre' es obligatorio."],
+      trim: true,
+      minlength: [2, "El campo 'nombre' debe tener al menos 2 caracteres."],
+    },
+    email: {
+      type: String,
+      required: [true, "El campo 'email' es obligatorio."],
+      trim: true,
+      lowercase: true,
+      match: [/^\S+@\S+\.\S+$/, "El campo 'email' debe tener un formato válido."],
+    },
+    tipo: {
+      type: String,
+      required: [true, "El campo 'tipo' es obligatorio."],
+      enum: {
+        values: TIPOS_VALIDOS,
+        message: `El campo 'tipo' debe ser uno de los siguientes valores: ${TIPOS_VALIDOS.join(", ")}.`,
+      },
+    },
+  },
+  { timestamps: true }
+);
 
-  _validar() {
-    if (!this.nombre || typeof this.nombre !== "string" || this.nombre.trim() === "") {
-      throw ApiError.badRequest("El campo 'nombre' es obligatorio y debe ser un texto.");
-    }
-    if (!this.email || typeof this.email !== "string" || !this.email.includes("@")) {
-      throw ApiError.badRequest("El campo 'email' es obligatorio y debe ser un email válido.");
-    }
-    if (!this.tipo || !TIPOS_VALIDOS.includes(this.tipo)) {
-      throw ApiError.badRequest(`El campo 'tipo' debe ser uno de los siguientes valores: ${TIPOS_VALIDOS.join(", ")}.`);
-    }
-  }
-}
-
-module.exports = Donante;
+export const Donante = model("Donante", donanteSchema);
+export default Donante;

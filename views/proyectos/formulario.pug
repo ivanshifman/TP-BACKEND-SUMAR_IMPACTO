@@ -1,0 +1,35 @@
+extends ../layout
+
+block contenido
+  a.volver(href="/") ← Volver al listado de proyectos
+
+  h1= modo === "crear" ? "Nuevo proyecto" : "Editar proyecto"
+
+  if error
+    p.mensaje-error= error
+
+  form.formulario(
+    action=modo === "crear" ? "/proyectos" : `/proyectos/${proyecto._id}?_method=PUT`
+    method="POST"
+  )
+    .campo
+      label(for="nombre") Nombre del proyecto
+      input#nombre(type="text" name="nombre" value=proyecto.nombre required minlength="2")
+
+    .campo
+      label(for="organizacion") Organización
+      select#organizacion(name="organizacion" required)
+        option(value="") Seleccionar organización...
+        each org in organizaciones
+          option(
+            value=org._id
+            selected=proyecto.organizacion && String(proyecto.organizacion._id || proyecto.organizacion) === String(org._id)
+          )= org.nombre
+
+    .campo
+      label(for="montoObjetivo") Monto objetivo (opcional)
+      input#montoObjetivo(type="number" name="montoObjetivo" min="0.01" step="0.01" value=proyecto.montoObjetivo)
+
+    .acciones-formulario
+      button.boton.boton-primario(type="submit")= modo === "crear" ? "Crear proyecto" : "Guardar cambios"
+      a.boton(href=modo === "crear" ? "/" : `/proyectos/${proyecto._id}`) Cancelar

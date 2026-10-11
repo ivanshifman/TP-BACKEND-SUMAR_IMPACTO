@@ -1,11 +1,15 @@
-const express = require("express");
-const path = require("node:path");
+import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import methodOverride from "method-override";
+import requestLogger from "./middleware/requestLogger.js";
+import notFound from "./middleware/notFound.js";
+import errorHandler from "./middleware/errorHandler.js";
+import apiRoutes from "./routes/index.js";
+import viewsRoutes from "./routes/views.routes.js";
 
-const requestLogger = require("./middleware/requestLogger");
-const notFound = require("./middleware/notFound");
-const errorHandler = require("./middleware/errorHandler");
-const apiRoutes = require("./routes/index");
-const viewsRoutes = require("./routes/views.routes");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.disable("x-powered-by");
@@ -16,6 +20,8 @@ app.set("views", path.join(__dirname, "..", "views"));
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(methodOverride("_method"));
 app.use(requestLogger);
 
 app.use("/", viewsRoutes);
@@ -25,4 +31,4 @@ app.use("/api", apiRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

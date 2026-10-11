@@ -1,48 +1,58 @@
-const donacionRepository = require("../repositories/DonacionRepository");
-const donacionService = require("../services/DonacionService");
-const Donacion = require("../models/Donacion");
-const ApiError = require("../utils/ApiError");
-const httpStatus = require("../utils/httpStatus");
-const asyncHandler = require("../utils/asyncHandler");
+import Donacion from "../models/Donacion.js";
+import donacionService from "../services/DonacionService.js";
+import ApiError from "../utils/ApiError.js";
+import httpStatus from "../utils/httpStatus.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-const listar = asyncHandler((req, res) => {
+export const listar = asyncHandler(async (req, res) => {
   const { donanteId, proyectoId } = req.query;
-  let donaciones = donacionRepository.findAll();
-  if (donanteId) donaciones = donaciones.filter((d) => d.donanteId === Number(donanteId));
-  if (proyectoId) donaciones = donaciones.filter((d) => d.proyectoId === Number(proyectoId));
+  const filtro = {};
+  if (donanteId) filtro.donante = donanteId;
+  if (proyectoId) filtro.proyecto = proyectoId;
+  const donaciones = await Donacion.find(filtro)
+    .populate("donante", "nombre tipo")
+    .populate("proyecto", "nombre")
+    .sort({ fecha: -1 });
   res.status(httpStatus.OK).json(donaciones);
 });
 
-const obtenerPorId = asyncHandler((req, res) => {
-  const donacion = donacionRepository.findById(req.params.id);
+export const obtenerPorId = asyncHandler(async (req, res) => {
+  const donacion = await Donacion.findById(req.params.id)
+    .populate("donante", "nombre tipo")
+    .populate("proyecto", "nombre");
   if (!donacion) {
     throw ApiError.notFound(`No existe una donación con id ${req.params.id}.`);
   }
   res.status(httpStatus.OK).json(donacion);
 });
 
-const crear = asyncHandler((req, res) => {
-  const nuevaDonacion = new Donacion(req.body);
-  donacionService.validarDonanteExiste(nuevaDonacion.donanteId);
-  donacionService.validarProyectoExisteSiCorresponde(nuevaDonacion.proyectoId);
-  const creada = donacionRepository.create(nuevaDonacion);
+export const crear = asyncHandler(async (req, res) => {
+  await donacionService.validarDonanteExiste(req.body.donante);
+  await donacionService.validarProyectoExisteSiCorresponde(req.body.proyecto);
+  const creada = await Donacion.create(req.body);
   res.status(httpStatus.CREATED).json(creada);
 });
 
-const actualizar = asyncHandler((req, res) => {
-  const existente = donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
-  const datosValidados = new Donacion({ ...existente, ...req.body });
-  donacionService.validarDonanteExiste(datosValidados.donanteId);
-  donacionService.validarProyectoExisteSiCorresponde(datosValidados.proyectoId);
-  datosValidados.utilizada = existente.utilizada;
-  const actualizada = donacionRepository.update(req.params.id, datosValidados);
+export const actualizar = asyncHandler(async (req, res) => {
+  await donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
+  if (req.body.donante) await donacionService.validarDonanteExiste(req.body.donante);
+  if (req.body.proyecto) await donacionService.validarProyectoExisteSiCorresponde(req.body.proyecto);
+
+  const { utilizada, ...datosPermitidos } = req.body;
+
+  const actualizada = await Donacion.findByIdAndUpdate(req.params.id, datosPermitidos, {
+    new: true,
+    runValidators: true,
+    context: "query",
+  });
   res.status(httpStatus.OK).json(actualizada);
 });
 
-const eliminar = asyncHandler((req, res) => {
-  donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
-  donacionRepository.delete(req.params.id);
+
+export const eliminar = asyncHandler(async (req, res) => {
+  await donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
+  await Donacion.findByIdAndDelete(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exports = { listar, obtenerPorId, crear, actualizar, eliminar };
+export default { listar, obtenerPorId, crear, actualizar, eliminar };

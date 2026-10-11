@@ -1,6 +1,7 @@
-const express = require("express");
+import express from "express";
+import * as controlador from "../controllers/proyectosController.js";
+
 const router = express.Router();
-const controlador = require("../controllers/proyectosController");
 
 router.get("/:id/saldo", controlador.saldo);
 router.get("/:id/donaciones", controlador.donaciones);
@@ -12,4 +13,4 @@ router.post("/", controlador.crear);
 router.put("/:id", controlador.actualizar);
 router.delete("/:id", controlador.eliminar);
 
-module.exports = router;
+export default router;

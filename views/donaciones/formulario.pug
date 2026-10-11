@@ -1,0 +1,36 @@
+extends ../layout
+
+block contenido
+  h1= modo === "crear" ? "Nueva donación" : "Editar donación"
+
+  form.formulario(
+    action=modo === "crear" ? "/donaciones" : `/donaciones/${donacion._id}?_method=PUT`
+    method="POST"
+  )
+    .campo
+      label(for="donante") Donante
+      select#donante(name="donante" required)
+        option(value="") Seleccionar donante...
+        each d in donantes
+          option(
+            value=d._id
+            selected=donacion.donante && String(donacion.donante._id || donacion.donante) === String(d._id)
+          )= d.nombre
+
+    .campo
+      label(for="proyecto") Proyecto de destino (opcional)
+      select#proyecto(name="proyecto")
+        option(value="") Sin proyecto asignado todavía
+        each p in proyectos
+          option(
+            value=p._id
+            selected=donacion.proyecto && String(donacion.proyecto._id || donacion.proyecto) === String(p._id)
+          )= p.nombre
+
+    .campo
+      label(for="monto") Monto
+      input#monto(type="number" name="monto" min="0.01" step="0.01" value=donacion.monto required)
+
+    .acciones-formulario
+      button.boton.boton-primario(type="submit")= modo === "crear" ? "Registrar donación" : "Guardar cambios"
+      a.boton(href="/") Cancelar

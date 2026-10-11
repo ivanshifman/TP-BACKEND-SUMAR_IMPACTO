@@ -1,7 +1,9 @@
 extends ../layout
 
 block contenido
-  h1 Gastos registrados
+  .encabezado-seccion
+    h1 Gastos registrados
+    a.boton.boton-primario(href="/gastos/nuevo") + Nuevo gasto
 
   if gastos.length === 0
     p.vacio Todavía no se registraron gastos en ningún proyecto.
@@ -17,7 +19,7 @@ block contenido
         each gasto in gastos
           tr
             td
-              a(href=`/proyectos/${gasto.proyectoId}`)= gasto.proyectoNombre
+              a(href=`/proyectos/${gasto.proyecto ? gasto.proyecto._id : ""}`)= gasto.proyectoNombre
             td= gasto.descripcion
             td= "$" + gasto.monto.toLocaleString("es-AR")
-            td= gasto.fecha
+            td= new Date(gasto.fecha).toLocaleDateString("es-AR")

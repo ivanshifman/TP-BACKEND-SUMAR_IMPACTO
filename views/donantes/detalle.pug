@@ -3,7 +3,12 @@ extends ../layout
 block contenido
   a.volver(href="/donantes") ← Volver al listado de donantes
 
-  h1= donante.nombre
+  .encabezado-seccion
+    h1= donante.nombre
+    .acciones
+      a.boton(href=`/donantes/${donante._id}/editar`) Editar
+      form.form-inline(action=`/donantes/${donante._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar este donante?');")
+        button.boton.boton-peligro(type="submit") Eliminar
 
   .ficha
     span.etiqueta Tipo de donante
@@ -11,7 +16,9 @@ block contenido
     p Email: #{donante.email}
     p Total donado: #[strong= "$" + totalDonado.toLocaleString("es-AR")]
 
-  h2 Historial de donaciones
+  .encabezado-seccion
+    h2 Historial de donaciones
+    a.boton.boton-primario(href=`/donaciones/nueva`) + Nueva donación
   if donaciones.length === 0
     p.vacio Este donante todavía no registró donaciones.
   else
@@ -27,5 +34,5 @@ block contenido
           tr
             td= donacion.proyectoNombre
             td= "$" + donacion.monto.toLocaleString("es-AR")
-            td= donacion.fecha
+            td= new Date(donacion.fecha).toLocaleDateString("es-AR")
             td= donacion.utilizada ? "Sí" : "No"

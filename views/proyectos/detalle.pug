@@ -3,7 +3,13 @@ extends ../layout
 block contenido
   a.volver(href="/") ← Volver al listado de proyectos
 
-  h1= proyecto.nombre
+  .encabezado-seccion
+    h1= proyecto.nombre
+    .acciones
+      a.boton(href=`/proyectos/${proyecto._id}/editar`) Editar
+      form.form-inline(action=`/proyectos/${proyecto._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar este proyecto?');")
+        button.boton.boton-peligro(type="submit") Eliminar
+
   p.organizacion Organización responsable: #{organizacion ? organizacion.nombre : "No encontrada"}
 
   section.resumen
@@ -17,7 +23,9 @@ block contenido
       span.etiqueta Saldo disponible
       span.valor= "$" + saldoDisponible.toLocaleString("es-AR")
 
-  h2 Donaciones recibidas
+  .encabezado-seccion
+    h2 Donaciones recibidas
+    a.boton.boton-primario(href=`/donaciones/nueva?proyectoId=${proyecto._id}`) + Nueva donación
   if donaciones.length === 0
     p.vacio Este proyecto todavía no recibió donaciones.
   else
@@ -28,15 +36,23 @@ block contenido
           th Monto
           th Fecha
           th Utilizada
+          th
       tbody
         each donacion in donaciones
           tr
             td= donacion.donanteNombre
             td= "$" + donacion.monto.toLocaleString("es-AR")
-            td= donacion.fecha
+            td= new Date(donacion.fecha).toLocaleDateString("es-AR")
             td= donacion.utilizada ? "Sí" : "No"
+            td
+              if !donacion.utilizada
+                a.boton.boton-chico(href=`/donaciones/${donacion._id}/editar`) Editar
+                form.form-inline(action=`/donaciones/${donacion._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar esta donación?');")
+                  button.boton.boton-chico.boton-peligro(type="submit") Eliminar
 
-  h2 Gastos registrados
+  .encabezado-seccion
+    h2 Gastos registrados
+    a.boton.boton-primario(href=`/gastos/nuevo?proyectoId=${proyecto._id}`) + Nuevo gasto
   if gastos.length === 0
     p.vacio Este proyecto todavía no registró gastos.
   else
@@ -51,4 +67,4 @@ block contenido
           tr
             td= gasto.descripcion
             td= "$" + gasto.monto.toLocaleString("es-AR")
-            td= gasto.fecha
+            td= new Date(gasto.fecha).toLocaleDateString("es-AR")

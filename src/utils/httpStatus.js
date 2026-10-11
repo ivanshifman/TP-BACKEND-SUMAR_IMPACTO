@@ -1,4 +1,4 @@
-module.exports = {
+export const httpStatus = {
   OK: 200,
   CREATED: 201,
   NO_CONTENT: 204,
@@ -7,3 +7,5 @@ module.exports = {
   CONFLICT: 409,
   INTERNAL_SERVER_ERROR: 500,
 };
+
+export default httpStatus;

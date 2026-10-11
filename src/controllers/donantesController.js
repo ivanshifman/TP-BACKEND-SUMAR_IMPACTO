@@ -1,48 +1,46 @@
-const donanteRepository = require("../repositories/DonanteRepository");
-const Donante = require("../models/Donante");
-const ApiError = require("../utils/ApiError");
-const httpStatus = require("../utils/httpStatus");
-const asyncHandler = require("../utils/asyncHandler");
+import Donante from "../models/Donante.js";
+import ApiError from "../utils/ApiError.js";
+import httpStatus from "../utils/httpStatus.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-const listar = asyncHandler((req, res) => {
+export const listar = asyncHandler(async (req, res) => {
   const { tipo } = req.query;
-  let donantes = donanteRepository.findAll();
-  if (tipo) {
-    donantes = donantes.filter((d) => d.tipo === tipo);
-  }
+  const filtro = tipo ? { tipo } : {};
+  const donantes = await Donante.find(filtro).sort({ nombre: 1 });
   res.status(httpStatus.OK).json(donantes);
 });
 
-const obtenerPorId = asyncHandler((req, res) => {
-  const donante = donanteRepository.findById(req.params.id);
+export const obtenerPorId = asyncHandler(async (req, res) => {
+  const donante = await Donante.findById(req.params.id);
   if (!donante) {
     throw ApiError.notFound(`No existe un donante con id ${req.params.id}.`);
   }
   res.status(httpStatus.OK).json(donante);
 });
 
-const crear = asyncHandler((req, res) => {
-  const nuevoDonante = new Donante(req.body);
-  const donanteCreado = donanteRepository.create(nuevoDonante);
-  res.status(httpStatus.CREATED).json(donanteCreado);
+export const crear = asyncHandler(async (req, res) => {
+  const nuevoDonante = await Donante.create(req.body);
+  res.status(httpStatus.CREATED).json(nuevoDonante);
 });
 
-const actualizar = asyncHandler((req, res) => {
-  const existente = donanteRepository.findById(req.params.id);
-  if (!existente) {
+export const actualizar = asyncHandler(async (req, res) => {
+  const actualizado = await Donante.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+    context: "query",
+  });
+  if (!actualizado) {
     throw ApiError.notFound(`No existe un donante con id ${req.params.id}.`);
   }
-  const datosValidados = new Donante({ ...existente, ...req.body });
-  const actualizado = donanteRepository.update(req.params.id, datosValidados);
   res.status(httpStatus.OK).json(actualizado);
 });
 
-const eliminar = asyncHandler((req, res) => {
-  const eliminado = donanteRepository.delete(req.params.id);
+export const eliminar = asyncHandler(async (req, res) => {
+  const eliminado = await Donante.findByIdAndDelete(req.params.id);
   if (!eliminado) {
     throw ApiError.notFound(`No existe un donante con id ${req.params.id}.`);
   }
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exports = { listar, obtenerPorId, crear, actualizar, eliminar };
+export default { listar, obtenerPorId, crear, actualizar, eliminar };

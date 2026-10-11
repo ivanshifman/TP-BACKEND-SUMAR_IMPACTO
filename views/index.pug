@@ -1,7 +1,9 @@
 extends layout
 
 block contenido
-  h1 Proyectos activos
+  .encabezado-seccion
+    h1 Proyectos activos
+    a.boton.boton-primario(href="/proyectos/nuevo") + Nuevo proyecto
 
   if proyectos.length === 0
     p.vacio No hay proyectos cargados todavía.
@@ -24,4 +26,4 @@ block contenido
             td= "$" + proyecto.totalGastado.toLocaleString("es-AR")
             td.saldo= "$" + proyecto.saldoDisponible.toLocaleString("es-AR")
             td
-              a.boton(href=`/proyectos/${proyecto.id}`) Ver detalle
+              a.boton(href=`/proyectos/${proyecto._id}`) Ver detalle

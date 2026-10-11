@@ -1,29 +1,27 @@
-const ApiError = require("../utils/ApiError");
+import mongoose from "mongoose";
 
-class Proyecto {
-  constructor({ nombre, organizacionId, montoObjetivo }) {
-    this.nombre = nombre;
-    this.organizacionId = organizacionId;
-    this.montoObjetivo = montoObjetivo;
-    this._validar();
-  }
+const { Schema, model } = mongoose;
 
-  _validar() {
-    if (!this.nombre || typeof this.nombre !== "string" || this.nombre.trim() === "") {
-      throw ApiError.badRequest("El campo 'nombre' es obligatorio y debe ser un texto.");
-    }
-    if (this.organizacionId === undefined || this.organizacionId === null || Number.isNaN(Number(this.organizacionId))) {
-      throw ApiError.badRequest("El campo 'organizacionId' es obligatorio y debe ser numérico.");
-    }
-    this.organizacionId = Number(this.organizacionId);
+const proyectoSchema = new Schema(
+  {
+    nombre: {
+      type: String,
+      required: [true, "El campo 'nombre' es obligatorio."],
+      trim: true,
+      minlength: [2, "El campo 'nombre' debe tener al menos 2 caracteres."],
+    },
+    organizacion: {
+      type: Schema.Types.ObjectId,
+      ref: "Organizacion",
+      required: [true, "El campo 'organizacion' es obligatorio."],
+    },
+    montoObjetivo: {
+      type: Number,
+      min: [0.01, "El campo 'montoObjetivo', si se envía, debe ser mayor a cero."],
+    },
+  },
+  { timestamps: true }
+);
 
-    if (this.montoObjetivo !== undefined && this.montoObjetivo !== null) {
-      if (Number.isNaN(Number(this.montoObjetivo)) || Number(this.montoObjetivo) <= 0) {
-        throw ApiError.badRequest("El campo 'montoObjetivo', si se envía, debe ser un número mayor a cero.");
-      }
-      this.montoObjetivo = Number(this.montoObjetivo);
-    }
-  }
-}
-
-module.exports = Proyecto;
+export const Proyecto = model("Proyecto", proyectoSchema);
+export default Proyecto;

@@ -1,52 +1,67 @@
-const proyectoRepository = require("../repositories/ProyectoRepository");
-const donacionRepository = require("../repositories/DonacionRepository");
-const gastoRepository = require("../repositories/GastoRepository");
-const organizacionRepository = require("../repositories/OrganizacionRepository");
-const ApiError = require("../utils/ApiError");
+import { isValidObjectId } from "mongoose";
+import Proyecto from "../models/Proyecto.js";
+import Organizacion from "../models/Organizacion.js";
+import Donacion from "../models/Donacion.js";
+import Gasto from "../models/Gasto.js";
+import ApiError from "../utils/ApiError.js";
 
 class ProyectoService {
-  obtenerProyectoOFallar(proyectoId) {
-    const proyecto = proyectoRepository.findById(proyectoId);
+  validarFormatoId(id, etiqueta = "id") {
+    if (!isValidObjectId(id)) {
+      throw ApiError.badRequest(`El ${etiqueta} '${id}' no tiene un formato válido.`);
+    }
+  }
+
+  async obtenerProyectoOFallar(proyectoId) {
+    this.validarFormatoId(proyectoId, "id de proyecto");
+    const proyecto = await Proyecto.findById(proyectoId);
     if (!proyecto) {
       throw ApiError.notFound(`No existe un proyecto con id ${proyectoId}.`);
     }
     return proyecto;
   }
 
-  validarOrganizacionExiste(organizacionId) {
-    const organizacion = organizacionRepository.findById(organizacionId);
+  async validarOrganizacionExiste(organizacionId) {
+    this.validarFormatoId(organizacionId, "id de organización");
+    const organizacion = await Organizacion.findById(organizacionId);
     if (!organizacion) {
       throw ApiError.badRequest(`No existe una organización con id ${organizacionId}.`);
     }
     return organizacion;
   }
 
-  totalDonado(proyectoId) {
-    return donacionRepository
-      .findByProyecto(proyectoId)
-      .reduce((acumulado, donacion) => acumulado + donacion.monto, 0);
+  async totalDonado(proyectoId) {
+    const resultado = await Donacion.aggregate([
+      { $match: { proyecto: new mongoose.Types.ObjectId(proyectoId) } },
+      { $group: { _id: null, total: { $sum: "$monto" } } },
+    ]);
+    return resultado.length ? resultado[0].total : 0;
   }
 
-  totalGastado(proyectoId) {
-    return gastoRepository
-      .findByProyecto(proyectoId)
-      .reduce((acumulado, gasto) => acumulado + gasto.monto, 0);
+  async totalGastado(proyectoId) {
+    const resultado = await Gasto.aggregate([
+      { $match: { proyecto: new mongoose.Types.ObjectId(proyectoId) } },
+      { $group: { _id: null, total: { $sum: "$monto" } } },
+    ]);
+    return resultado.length ? resultado[0].total : 0;
   }
 
-  calcularSaldoDisponible(proyectoId) {
-    this.obtenerProyectoOFallar(proyectoId);
-    const totalDonado = this.totalDonado(proyectoId);
-    const totalGastado = this.totalGastado(proyectoId);
+  async calcularSaldoDisponible(proyectoId) {
+    await this.obtenerProyectoOFallar(proyectoId);
+    const [totalDonado, totalGastado] = await Promise.all([
+      this.totalDonado(proyectoId),
+      this.totalGastado(proyectoId),
+    ]);
     return {
-      proyectoId: Number(proyectoId),
+      proyectoId: String(proyectoId),
       totalDonado,
       totalGastado,
       saldoDisponible: totalDonado - totalGastado,
     };
   }
 
-  validarGastoContraSaldo(proyectoId, montoGasto) {
-    const { saldoDisponible } = this.calcularSaldoDisponible(proyectoId);
+  async validarGastoContraSaldo(proyectoId, montoGasto) {
+    const { saldoDisponible } = await this.calcularSaldoDisponible(proyectoId);
     if (montoGasto > saldoDisponible) {
       throw ApiError.conflict(
         `El gasto ($${montoGasto}) supera el saldo disponible del proyecto ($${saldoDisponible}).`
@@ -54,19 +69,21 @@ class ProyectoService {
     }
   }
 
-  marcarDonacionesUtilizadas(proyectoId, montoGasto) {
-    const donacionesDisponibles = donacionRepository
-      .findByProyecto(proyectoId)
-      .filter((d) => !d.utilizada)
-      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  async marcarDonacionesUtilizadas(proyectoId, montoGasto) {
+    const donacionesDisponibles = await Donacion.find({
+      proyecto: proyectoId,
+      utilizada: false,
+    }).sort({ fecha: 1 });
 
     let restante = montoGasto;
     for (const donacion of donacionesDisponibles) {
       if (restante <= 0) break;
-      donacionRepository.update(donacion.id, { utilizada: true });
+      donacion.utilizada = true;
+      await donacion.save();
       restante -= donacion.monto;
     }
   }
 }
 
-module.exports = new ProyectoService();
+export const proyectoService = new ProyectoService();
+export default proyectoService;

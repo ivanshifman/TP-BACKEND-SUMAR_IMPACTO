@@ -1,58 +1,64 @@
-const proyectoRepository = require("../repositories/ProyectoRepository");
-const donacionRepository = require("../repositories/DonacionRepository");
-const gastoRepository = require("../repositories/GastoRepository");
-const proyectoService = require("../services/ProyectoService");
-const Proyecto = require("../models/Proyecto");
-const httpStatus = require("../utils/httpStatus");
-const asyncHandler = require("../utils/asyncHandler");
+import Proyecto from "../models/Proyecto.js";
+import Donacion from "../models/Donacion.js";
+import Gasto from "../models/Gasto.js";
+import proyectoService from "../services/ProyectoService.js";
+import httpStatus from "../utils/httpStatus.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-const listar = asyncHandler((req, res) => {
+export const listar = asyncHandler(async (req, res) => {
   const { organizacionId } = req.query;
-  const proyectos = organizacionId
-    ? proyectoRepository.findByOrganizacion(organizacionId)
-    : proyectoRepository.findAll();
+  const filtro = organizacionId ? { organizacion: organizacionId } : {};
+  const proyectos = await Proyecto.find(filtro).populate("organizacion", "nombre").sort({ nombre: 1 });
   res.status(httpStatus.OK).json(proyectos);
 });
 
-const obtenerPorId = asyncHandler((req, res) => {
-  const proyecto = proyectoService.obtenerProyectoOFallar(req.params.id);
+export const obtenerPorId = asyncHandler(async (req, res) => {
+  const proyecto = await proyectoService.obtenerProyectoOFallar(req.params.id);
   res.status(httpStatus.OK).json(proyecto);
 });
 
-const crear = asyncHandler((req, res) => {
-  const nuevoProyecto = new Proyecto(req.body);
-  proyectoService.validarOrganizacionExiste(nuevoProyecto.organizacionId);
-  const creado = proyectoRepository.create(nuevoProyecto);
+export const crear = asyncHandler(async (req, res) => {
+  await proyectoService.validarOrganizacionExiste(req.body.organizacion);
+  const creado = await Proyecto.create(req.body);
   res.status(httpStatus.CREATED).json(creado);
 });
 
-const actualizar = asyncHandler((req, res) => {
-  const existente = proyectoService.obtenerProyectoOFallar(req.params.id);
-  const datosValidados = new Proyecto({ ...existente, ...req.body });
-  proyectoService.validarOrganizacionExiste(datosValidados.organizacionId);
-  const actualizado = proyectoRepository.update(req.params.id, datosValidados);
+export const actualizar = asyncHandler(async (req, res) => {
+  await proyectoService.obtenerProyectoOFallar(req.params.id);
+  if (req.body.organizacion) {
+    await proyectoService.validarOrganizacionExiste(req.body.organizacion);
+  }
+  const actualizado = await Proyecto.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+    context: "query",
+  });
   res.status(httpStatus.OK).json(actualizado);
 });
 
-const eliminar = asyncHandler((req, res) => {
-  proyectoService.obtenerProyectoOFallar(req.params.id);
-  proyectoRepository.delete(req.params.id);
+export const eliminar = asyncHandler(async (req, res) => {
+  await proyectoService.obtenerProyectoOFallar(req.params.id);
+  await Proyecto.findByIdAndDelete(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-const saldo = asyncHandler((req, res) => {
-  const resultado = proyectoService.calcularSaldoDisponible(req.params.id);
+export const saldo = asyncHandler(async (req, res) => {
+  const resultado = await proyectoService.calcularSaldoDisponible(req.params.id);
   res.status(httpStatus.OK).json(resultado);
 });
 
-const donaciones = asyncHandler((req, res) => {
-  proyectoService.obtenerProyectoOFallar(req.params.id);
-  res.status(httpStatus.OK).json(donacionRepository.findByProyecto(req.params.id));
+export const donaciones = asyncHandler(async (req, res) => {
+  await proyectoService.obtenerProyectoOFallar(req.params.id);
+  const resultado = await Donacion.find({ proyecto: req.params.id })
+    .populate("donante", "nombre tipo")
+    .sort({ fecha: 1 });
+  res.status(httpStatus.OK).json(resultado);
 });
 
-const gastos = asyncHandler((req, res) => {
-  proyectoService.obtenerProyectoOFallar(req.params.id);
-  res.status(httpStatus.OK).json(gastoRepository.findByProyecto(req.params.id));
+export const gastos = asyncHandler(async (req, res) => {
+  await proyectoService.obtenerProyectoOFallar(req.params.id);
+  const resultado = await Gasto.find({ proyecto: req.params.id }).sort({ fecha: 1 });
+  res.status(httpStatus.OK).json(resultado);
 });
 
-module.exports = { listar, obtenerPorId, crear, actualizar, eliminar, saldo, donaciones, gastos };
+export default { listar, obtenerPorId, crear, actualizar, eliminar, saldo, donaciones, gastos };

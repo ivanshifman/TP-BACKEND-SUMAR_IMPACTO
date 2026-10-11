@@ -1,9 +1,10 @@
-const express = require("express");
+import express from "express";
+import * as controlador from "../controllers/gastosController.js";
+
 const router = express.Router();
-const controlador = require("../controllers/gastosController");
 
 router.get("/", controlador.listar);
 router.get("/:id", controlador.obtenerPorId);
 router.post("/", controlador.crear);
 
-module.exports = router;
+export default router;

@@ -1,35 +1,33 @@
-const gastoRepository = require("../repositories/GastoRepository");
-const proyectoService = require("../services/ProyectoService");
-const Gasto = require("../models/Gasto");
-const ApiError = require("../utils/ApiError");
-const httpStatus = require("../utils/httpStatus");
-const asyncHandler = require("../utils/asyncHandler");
+import Gasto from "../models/Gasto.js";
+import proyectoService from "../services/ProyectoService.js";
+import ApiError from "../utils/ApiError.js";
+import httpStatus from "../utils/httpStatus.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-const listar = asyncHandler((req, res) => {
+export const listar = asyncHandler(async (req, res) => {
   const { proyectoId } = req.query;
-  const gastos = proyectoId
-    ? gastoRepository.findByProyecto(proyectoId)
-    : gastoRepository.findAll();
+  const filtro = proyectoId ? { proyecto: proyectoId } : {};
+  const gastos = await Gasto.find(filtro).populate("proyecto", "nombre").sort({ fecha: -1 });
   res.status(httpStatus.OK).json(gastos);
 });
 
-const obtenerPorId = asyncHandler((req, res) => {
-  const gasto = gastoRepository.findById(req.params.id);
+export const obtenerPorId = asyncHandler(async (req, res) => {
+  const gasto = await Gasto.findById(req.params.id).populate("proyecto", "nombre");
   if (!gasto) {
     throw ApiError.notFound(`No existe un gasto con id ${req.params.id}.`);
   }
   res.status(httpStatus.OK).json(gasto);
 });
 
-const crear = asyncHandler((req, res) => {
-  const nuevoGasto = new Gasto(req.body);
-  proyectoService.obtenerProyectoOFallar(nuevoGasto.proyectoId);
-  proyectoService.validarGastoContraSaldo(nuevoGasto.proyectoId, nuevoGasto.monto);
+export const crear = asyncHandler(async (req, res) => {
+  const { proyecto: proyectoId, monto } = req.body;
+  await proyectoService.obtenerProyectoOFallar(proyectoId);
+  await proyectoService.validarGastoContraSaldo(proyectoId, Number(monto));
 
-  const creado = gastoRepository.create(nuevoGasto);
-  proyectoService.marcarDonacionesUtilizadas(nuevoGasto.proyectoId, nuevoGasto.monto);
+  const creado = await Gasto.create(req.body);
+  await proyectoService.marcarDonacionesUtilizadas(proyectoId, Number(monto));
 
   res.status(httpStatus.CREATED).json(creado);
 });
 
-module.exports = { listar, obtenerPorId, crear };
+export default { listar, obtenerPorId, crear };

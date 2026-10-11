@@ -1,20 +1,24 @@
-const ApiError = require("../utils/ApiError");
+import mongoose from "mongoose";
 
-class Organizacion {
-  constructor({ nombre, descripcion }) {
-    this.nombre = nombre;
-    this.descripcion = descripcion;
-    this._validar();
-  }
+const { Schema, model } = mongoose;
 
-  _validar() {
-    if (!this.nombre || typeof this.nombre !== "string" || this.nombre.trim() === "") {
-      throw ApiError.badRequest("El campo 'nombre' es obligatorio y debe ser un texto.");
-    }
-    if (!this.descripcion || typeof this.descripcion !== "string" || this.descripcion.trim() === "") {
-      throw ApiError.badRequest("El campo 'descripcion' es obligatorio y debe ser un texto.");
-    }
-  }
-}
+const organizacionSchema = new Schema(
+  {
+    nombre: {
+      type: String,
+      required: [true, "El campo 'nombre' es obligatorio."],
+      trim: true,
+      minlength: [2, "El campo 'nombre' debe tener al menos 2 caracteres."],
+    },
+    descripcion: {
+      type: String,
+      required: [true, "El campo 'descripcion' es obligatorio."],
+      trim: true,
+      minlength: [10, "El campo 'descripcion' debe tener al menos 10 caracteres."],
+    },
+  },
+  { timestamps: true }
+);
 
-module.exports = Organizacion;
+export const Organizacion = model("Organizacion", organizacionSchema);
+export default Organizacion;

@@ -45,28 +45,7 @@ body {
 
 .nav a:hover {
   color: #ffffff;
-  border-bottom: 2px solid #8A6D3B;
-}
-
-.ficha {
-  background-color: #ffffff;
-  border-radius: 6px;
-  padding: 18px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  margin-bottom: 24px;
-}
-
-.ficha .etiqueta {
-  font-size: 13px;
-  color: #6b7280;
-  display: block;
-  margin-bottom: 2px;
-}
-
-.ficha .valor-grande {
-  font-size: 20px;
-  font-weight: bold;
-  color: #1f3864;
+  border-bottom: 2px solid #8a6d3b;
 }
 
 .contenido {
@@ -79,6 +58,24 @@ h1 {
   color: #1f3864;
 }
 
+.encabezado-seccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.encabezado-seccion h1,
+.encabezado-seccion h2 {
+  margin-bottom: 0;
+}
+
+.acciones {
+  display: flex;
+  gap: 8px;
+}
+
 .tabla {
   width: 100%;
   border-collapse: collapse;
@@ -87,15 +84,22 @@ h1 {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.tabla th, .tabla td {
+.tabla th,
+.tabla td {
   text-align: left;
   padding: 12px 14px;
   border-bottom: 1px solid #e4e7eb;
+  vertical-align: middle;
 }
 
 .tabla th {
   background-color: #eef1f5;
   color: #1f3864;
+}
+
+.tabla td form {
+  display: inline-block;
+  margin-left: 6px;
 }
 
 .saldo {
@@ -111,6 +115,27 @@ h1 {
   border-radius: 4px;
   text-decoration: none;
   font-size: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.boton-primario {
+  background-color: #1f3864;
+}
+
+.boton-peligro {
+  background-color: #a33;
+}
+
+.boton-chico {
+  padding: 4px 8px;
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+.form-inline {
+  display: inline;
 }
 
 .volver {
@@ -153,9 +178,30 @@ h1 {
   margin-top: 4px;
 }
 
+.valor-grande {
+  display: block;
+  font-size: 20px;
+  font-weight: bold;
+  color: #1f3864;
+  margin-bottom: 8px;
+}
+
 .vacio {
   color: #6b7280;
   font-style: italic;
+}
+
+.ayuda {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.ficha {
+  background-color: #ffffff;
+  border-radius: 6px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
 }
 
 .pie {
@@ -168,4 +214,51 @@ h1 {
 .error {
   text-align: center;
   padding: 60px 0;
+}
+
+/* Formularios */
+.formulario {
+  background-color: #ffffff;
+  border-radius: 6px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  max-width: 480px;
+}
+
+.campo {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.campo label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #1f3864;
+  margin-bottom: 6px;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  padding: 8px 10px;
+  border: 1px solid #cbd2d9;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.acciones-formulario {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mensaje-error {
+  background-color: #fbeaea;
+  border: 1px solid #a33;
+  color: #a33;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
 }

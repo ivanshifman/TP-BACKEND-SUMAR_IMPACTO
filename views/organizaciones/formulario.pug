@@ -1,0 +1,22 @@
+extends ../layout
+
+block contenido
+  a.volver(href="/organizaciones") ← Volver al listado de organizaciones
+
+  h1= modo === "crear" ? "Nueva organización" : "Editar organización"
+
+  form.formulario(
+    action=modo === "crear" ? "/organizaciones" : `/organizaciones/${organizacion._id}?_method=PUT`
+    method="POST"
+  )
+    .campo
+      label(for="nombre") Nombre de la organización
+      input#nombre(type="text" name="nombre" value=organizacion.nombre required minlength="2")
+
+    .campo
+      label(for="descripcion") Descripción
+      textarea#descripcion(name="descripcion" rows="4" required minlength="10")= organizacion.descripcion
+
+    .acciones-formulario
+      button.boton.boton-primario(type="submit")= modo === "crear" ? "Crear organización" : "Guardar cambios"
+      a.boton(href=modo === "crear" ? "/organizaciones" : `/organizaciones/${organizacion._id}`) Cancelar

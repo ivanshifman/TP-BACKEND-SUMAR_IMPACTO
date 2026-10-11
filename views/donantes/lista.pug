@@ -1,7 +1,9 @@
 extends ../layout
 
 block contenido
-  h1 Donantes
+  .encabezado-seccion
+    h1 Donantes
+    a.boton.boton-primario(href="/donantes/nuevo") + Nuevo donante
 
   if donantes.length === 0
     p.vacio No hay donantes cargados todavía.
@@ -24,4 +26,4 @@ block contenido
             td= donante.cantidadDonaciones
             td= "$" + donante.totalDonado.toLocaleString("es-AR")
             td
-              a.boton(href=`/donantes/${donante.id}`) Ver detalle
+              a.boton(href=`/donantes/${donante._id}`) Ver detalle

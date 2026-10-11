@@ -1,0 +1,29 @@
+extends ../layout
+
+block contenido
+  a.volver(href="/donantes") ← Volver al listado de donantes
+
+  h1= modo === "crear" ? "Nuevo donante" : "Editar donante"
+
+  form.formulario(
+    action=modo === "crear" ? "/donantes" : `/donantes/${donante._id}?_method=PUT`
+    method="POST"
+  )
+    .campo
+      label(for="nombre") Nombre completo
+      input#nombre(type="text" name="nombre" value=donante.nombre required minlength="2")
+
+    .campo
+      label(for="email") Email
+      input#email(type="email" name="email" value=donante.email required)
+
+    .campo
+      label(for="tipo") Tipo de donante
+      select#tipo(name="tipo" required)
+        option(value="") Seleccionar tipo...
+        option(value="individual" selected=donante.tipo === "individual") Individual
+        option(value="corporativo" selected=donante.tipo === "corporativo") Corporativo
+
+    .acciones-formulario
+      button.boton.boton-primario(type="submit")= modo === "crear" ? "Crear donante" : "Guardar cambios"
+      a.boton(href=modo === "crear" ? "/donantes" : `/donantes/${donante._id}`) Cancelar

@@ -1,65 +1,110 @@
-# SumarImpacto — Backend (DSWB, Primera Entrega)
+# SumarImpacto — Backend (DSWB, Segunda Entrega)
 
-Backend de **SumarImpacto**, desarrollado para la Primera Entrega del Trabajo Práctico
+Backend de **SumarImpacto**, desarrollado para la Segunda Entrega del Trabajo Práctico
 Integrador de Desarrollo Web Backend (DSWB), IFTS N° 29 — Comisión A — 2do Cuatrimestre 2026.
 
-El sistema administra donantes, organizaciones, proyectos, donaciones y gastos,
-calculando en todo momento el saldo disponible de cada proyecto y protegiendo las
-donaciones ya utilizadas frente a modificaciones posteriores.
+Respecto de la Primera Entrega, esta versión migra la persistencia de archivos JSON a
+**MongoDB con Mongoose**, convierte todo el código a **ES Modules** (`import`/`export`)
+y suma **formularios** en las vistas Pug para crear, editar y eliminar datos desde el
+navegador, además de la API REST.
 
 ## Tecnologías utilizadas
 
-- Node.js
+- Node.js (ES Modules)
 - Express
+- MongoDB + Mongoose
 - Pug (motor de plantillas)
-- Persistencia en archivos JSON (sin base de datos, según el alcance de esta entrega)
+- method-override (para que los `<form>` HTML puedan enviar PUT/DELETE)
+- dotenv (variables de entorno)
 
 ## Instalación y ejecución
 
 ```bash
 npm install
+cp .env.example .env
+npm run seed             
 npm start
 ```
 
 El servidor levanta en `http://localhost:3000`.
 
-- Interfaz web (solo lectura): `http://localhost:3000/`, `/donantes`, `/organizaciones`, `/gastos`
+- Interfaz web (con formularios): `http://localhost:3000/`
 - API REST: `http://localhost:3000/api/...`
+
+## Variables de entorno
+
+Ver `.env.example`. La única obligatoria es `MONGODB_URI` (cadena de conexión a
+MongoDB, local o Atlas). `PORT` es opcional (por defecto 3000).
 
 ## Estructura del proyecto
 
 ```
 sumarimpacto-backend/
 ├── server.js
-├── data/                  # Persistencia en archivos JSON
+├── .env.example
+├── data/
+│   └── seed.js             # script de carga de datos de ejemplo (npm run seed)
 ├── src/
 │   ├── app.js
-│   ├── models/            # Clases de entidad con sus propias validaciones (POO)
-│   ├── repositories/      # Acceso a los archivos JSON (patrón Repository)
-│   ├── services/          # Lógica de negocio (saldo, validaciones cruzadas)
-│   ├── controllers/       # Controladores de la API y de las vistas
-│   ├── routes/            # Definición de rutas
-│   ├── middleware/        # Logger, 404 y manejo centralizado de errores
-│   └── utils/             # ApiError, códigos HTTP, asyncHandler
-└── views/                 # Vistas Pug: proyectos, donantes, organizaciones, gastos (error)
+│   ├── config/
+│   │   └── db.js            # conexión a MongoDB con Mongoose
+│   ├── models/               # esquemas de Mongoose (con validaciones propias)
+│   ├── services/              # lógica de negocio (saldo, validaciones cruzadas)
+│   ├── controllers/           # controladores de la API y de las vistas
+│   ├── routes/                 # definición de rutas (API + vistas)
+│   ├── middleware/             # logger, 404, manejo centralizado de errores
+│   └── utils/                   # ApiError, códigos HTTP, asyncHandler
+└── views/                        # vistas Pug: listados, detalles y formularios
 ```
 
-## Vistas web disponibles
+## Relaciones entre entidades
 
-Todas las vistas son de solo lectura (visualización de datos); la carga y modificación
-de datos se realiza a través de la API REST.
+Las relaciones usan el `ObjectId` nativo de MongoDB (vía Mongoose `ref`), en vez de
+los IDs numéricos propios que se usaban con persistencia en JSON:
+
+- `Proyecto.organizacion` → referencia a `Organizacion`
+- `Donacion.donante` → referencia a `Donante`
+- `Donacion.proyecto` → referencia a `Proyecto` (opcional)
+- `Gasto.proyecto` → referencia a `Proyecto`
+
+## Validaciones
+
+Se resuelven en dos niveles:
+
+- **Formato**: a nivel de esquema de Mongoose (`required`, `min`, `enum`, `match`,
+  `minlength`), sin middleware de validación general, siguiendo la indicación
+  puntual del caso.
+- **Negocio**: en los servicios (`ProyectoService`, `DonacionService`), que validan
+  relaciones entre colecciones (existencia de donante, proyecto, organización) y
+  reglas específicas del caso (saldo disponible, donación no modificable si ya
+  fue utilizada).
+
+Los errores propios de Mongoose (`CastError` por un id con formato inválido,
+`ValidationError` por una validación de esquema) se traducen automáticamente al
+mismo formato de error que usa el resto de la aplicación, en `errorHandler.js`.
+
+## Vistas web disponibles
 
 | Ruta | Descripción |
 |---|---|
 | `GET /` | Listado de proyectos con su saldo disponible |
-| `GET /proyectos/:id` | Detalle de un proyecto: donaciones y gastos |
-| `GET /donantes` | Listado de donantes con el total donado por cada uno |
+| `GET /proyectos/nuevo` · `GET /proyectos/:id/editar` | Alta y edición de proyectos |
+| `GET /proyectos/:id` | Detalle de un proyecto: donaciones, gastos, acciones |
+| `GET /donantes` | Listado de donantes, con alta (`/donantes/nuevo`) y edición |
 | `GET /donantes/:id` | Detalle de un donante: historial de donaciones |
-| `GET /organizaciones` | Listado de organizaciones con su cantidad de proyectos |
-| `GET /organizaciones/:id` | Detalle de una organización: sus proyectos y saldo |
-| `GET /gastos` | Listado global de todos los gastos registrados |
+| `GET /organizaciones` | Listado de organizaciones, con alta y edición |
+| `GET /organizaciones/:id` | Detalle de una organización: sus proyectos |
+| `GET /donaciones/nueva` · `GET /donaciones/:id/editar` | Alta y edición de donaciones (bloqueada si ya fue utilizada) |
+| `GET /gastos` | Listado global de gastos, con alta (`/gastos/nuevo`) |
 
-## Endpoints principales
+Los gastos solo admiten alta por diseño: no se editan ni eliminan, para no romper
+la consistencia del saldo ya calculado (ver `11. Decisiones de diseño` en la
+documentación de la Primera Entrega).
+
+## Endpoints de la API
+
+Igual que en la Primera Entrega (ver documentación completa en
+`DSWB_2A_CASO5_2C26.pdf`), ahora con los mismos recursos sobre MongoDB:
 
 | Recurso | Endpoints |
 |---|---|
@@ -71,11 +116,11 @@ de datos se realiza a través de la API REST.
 
 ## Bibliografía
 
+- Mongoose. *Documentación oficial*. https://mongoosejs.com/docs/guide.html
+- MongoDB. *Documentación oficial*. https://www.mongodb.com/docs/manual/
 - Express.js. *Using template engines with Express*. https://expressjs.com/es/guide/using-template-engines/
-- MDN Web Docs. *Express Tutorial Part 2: Creating a skeleton website*. https://developer.mozilla.org/es/docs/Learn/Server-side/Express_Nodejs/skeleton_website
 - Pug. *Documentación oficial*. https://pugjs.org/api/getting-started.html
-- Node.js. *Documentación oficial*. https://nodejs.org/es/docs
-- VidaMRR. *Tutorial de Pug para hacer plantillas dinámicas | Curso de Node.js + Express.js*. https://www.youtube.com/watch?v=K7jysT0T8QM
+- Node.js. *ECMAScript Modules*. https://nodejs.org/api/esm.html
 
 ## Integrantes
 

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { isValidObjectId } from "mongoose";
 import Proyecto from "../models/Proyecto.js";
 import Organizacion from "../models/Organizacion.js";

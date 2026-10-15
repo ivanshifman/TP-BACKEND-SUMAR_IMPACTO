@@ -38,7 +38,7 @@ MongoDB, local o Atlas). `PORT` es opcional (por defecto 3000).
 
 ## Estructura del proyecto
 
-```
+```text
 sumarimpacto-backend/
 ├── server.js
 ├── .env.example
@@ -86,7 +86,7 @@ mismo formato de error que usa el resto de la aplicación, en `errorHandler.js`.
 ## Vistas web disponibles
 
 | Ruta | Descripción |
-|---|---|
+| --- | --- |
 | `GET /` | Listado de proyectos con su saldo disponible |
 | `GET /proyectos/nuevo` · `GET /proyectos/:id/editar` | Alta y edición de proyectos |
 | `GET /proyectos/:id` | Detalle de un proyecto: donaciones, gastos, acciones |
@@ -107,7 +107,7 @@ Igual que en la Primera Entrega (ver documentación completa en
 `DSWB_2A_CASO5_2C26.pdf`), ahora con los mismos recursos sobre MongoDB:
 
 | Recurso | Endpoints |
-|---|---|
+| --- | --- |
 | Donantes | `GET/POST /api/donantes`, `GET/PUT/DELETE /api/donantes/:id` |
 | Organizaciones | `GET/POST /api/organizaciones`, `GET/PUT/DELETE /api/organizaciones/:id` |
 | Proyectos | `GET/POST /api/proyectos`, `GET/PUT/DELETE /api/proyectos/:id`, `GET /api/proyectos/:id/saldo`, `GET /api/proyectos/:id/donaciones`, `GET /api/proyectos/:id/gastos` |
@@ -116,11 +116,11 @@ Igual que en la Primera Entrega (ver documentación completa en
 
 ## Bibliografía
 
-- Mongoose. *Documentación oficial*. https://mongoosejs.com/docs/guide.html
-- MongoDB. *Documentación oficial*. https://www.mongodb.com/docs/manual/
-- Express.js. *Using template engines with Express*. https://expressjs.com/es/guide/using-template-engines/
-- Pug. *Documentación oficial*. https://pugjs.org/api/getting-started.html
-- Node.js. *ECMAScript Modules*. https://nodejs.org/api/esm.html
+- Mongoose. *Documentación oficial*. <https://mongoosejs.com/docs/guide.html>
+- MongoDB. *Documentación oficial*. <https://www.mongodb.com/docs/manual/>
+- Express.js. *Using template engines with Express*. <https://expressjs.com/es/guide/using-template-engines/>
+- Pug. *Documentación oficial*. <https://pugjs.org/api/getting-started.html>
+- Node.js. *ECMAScript Modules*. <https://nodejs.org/api/esm.html>
 
 ## Integrantes
 

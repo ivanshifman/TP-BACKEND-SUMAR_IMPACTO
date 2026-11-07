@@ -1,4 +1,5 @@
 import Donacion from "../models/Donacion.js";
+import Campania from "../models/Campania.js";
 import donacionService from "../services/DonacionService.js";
 import ApiError from "../utils/ApiError.js";
 import httpStatus from "../utils/httpStatus.js";
@@ -11,7 +12,7 @@ export const listar = asyncHandler(async (req, res) => {
   if (proyectoId) filtro.proyecto = proyectoId;
   const donaciones = await Donacion.find(filtro)
     .populate("donante", "nombre tipo")
-    .populate("proyecto", "nombre")
+    .populate("proyecto", "nombre").populate("campania", "nombre")
     .sort({ fecha: -1 });
   res.status(httpStatus.OK).json(donaciones);
 });
@@ -19,7 +20,7 @@ export const listar = asyncHandler(async (req, res) => {
 export const obtenerPorId = asyncHandler(async (req, res) => {
   const donacion = await Donacion.findById(req.params.id)
     .populate("donante", "nombre tipo")
-    .populate("proyecto", "nombre");
+    .populate("proyecto", "nombre").populate("campania", "nombre");
   if (!donacion) {
     throw ApiError.notFound(`No existe una donación con id ${req.params.id}.`);
   }
@@ -29,7 +30,8 @@ export const obtenerPorId = asyncHandler(async (req, res) => {
 export const crear = asyncHandler(async (req, res) => {
   await donacionService.validarDonanteExiste(req.body.donante);
   await donacionService.validarProyectoExisteSiCorresponde(req.body.proyecto);
-  const creada = await Donacion.create(req.body);
+  if (req.body.campania && !(await Campania.exists({ _id: req.body.campania }))) throw ApiError.badRequest("La campaña seleccionada no existe.");
+  const creada = await Donacion.create({ donante: req.body.donante, proyecto: req.body.proyecto || null, campania: req.body.campania || null, monto: req.body.monto, fecha: req.body.fecha });
   res.status(httpStatus.CREATED).json(creada);
 });
 
@@ -37,8 +39,9 @@ export const actualizar = asyncHandler(async (req, res) => {
   await donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
   if (req.body.donante) await donacionService.validarDonanteExiste(req.body.donante);
   if (req.body.proyecto) await donacionService.validarProyectoExisteSiCorresponde(req.body.proyecto);
+  if (req.body.campania && !(await Campania.exists({ _id: req.body.campania }))) throw ApiError.badRequest("La campaña seleccionada no existe.");
 
-  const { utilizada, ...datosPermitidos } = req.body;
+  const datosPermitidos = { donante: req.body.donante, proyecto: req.body.proyecto || null, campania: req.body.campania || null, monto: req.body.monto, fecha: req.body.fecha };
 
   const actualizada = await Donacion.findByIdAndUpdate(req.params.id, datosPermitidos, {
     new: true,

@@ -1,10 +1,13 @@
 import express from "express";
+import { body, param, query } from "express-validator";
 import * as controlador from "../controllers/gastosController.js";
-
+import { permitirRoles } from "../middleware/auth.js";
+import { validar } from "../middleware/validate.js";
+import { uploadComprobante } from "../middleware/upload.js";
+import { ROLES } from "../config/security.js";
 const router = express.Router();
-
-router.get("/", controlador.listar);
-router.get("/:id", controlador.obtenerPorId);
-router.post("/", controlador.crear);
-
+router.get("/", permitirRoles(ROLES.ADMIN, ROLES.REFERENTE, ROLES.AUDITORIA, ROLES.MESA, ROLES.ADMINISTRACION), [query("proyectoId").optional().isMongoId(), query("estado").optional().isIn(["recibido", "en_revision", "pendiente_mesa", "aprobado", "observado"]), validar], controlador.listar);
+router.get("/:id", permitirRoles(ROLES.ADMIN, ROLES.REFERENTE, ROLES.AUDITORIA, ROLES.MESA, ROLES.ADMINISTRACION), [param("id").isMongoId(), validar], controlador.obtenerPorId);
+router.post("/", permitirRoles(ROLES.REFERENTE), uploadComprobante, [body("proyecto").isMongoId(), body("monto").isFloat({ gt: 0 }), body("fecha").isISO8601(), body("descripcion").trim().isLength({ min: 3, max: 500 }), body("rubro").trim().isLength({ min: 2, max: 80 }), validar], controlador.crear);
+router.patch("/:id/revision", permitirRoles(ROLES.AUDITORIA, ROLES.MESA), [param("id").isMongoId(), body("accion").isIn(["aprobar", "observar"]), body("observacion").optional().isLength({ max: 1000 }), validar], controlador.revisar);
 export default router;

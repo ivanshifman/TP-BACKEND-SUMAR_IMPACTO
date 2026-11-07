@@ -1,0 +1,23 @@
+doctype html
+html(lang="es")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    title= titulo
+    link(rel="stylesheet" href="/css/styles.css")
+  body.login-page
+    main.login-card
+      a.logo(href="/") SumarImpacto
+      h1 Acceso al sistema
+      p.ayuda Ingresá con las credenciales asignadas por el administrador.
+      if error
+        p.mensaje-error(role="alert")= error
+      form.formulario(action="/login" method="POST")
+        .campo
+          label(for="email") Correo electrónico
+          input#email(type="email" name="email" autocomplete="username" required maxlength="254")
+        .campo
+          label(for="password") Contraseña
+          input#password(type="password" name="password" autocomplete="current-password" required)
+        input(type="hidden" name="next" value=typeof next !== "undefined" ? next : "")
+        button.boton.boton-primario(type="submit") Ingresar

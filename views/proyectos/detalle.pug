@@ -6,9 +6,11 @@ block contenido
   .encabezado-seccion
     h1= proyecto.nombre
     .acciones
-      a.boton(href=`/proyectos/${proyecto._id}/editar`) Editar
-      form.form-inline(action=`/proyectos/${proyecto._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar este proyecto?');")
-        button.boton.boton-peligro(type="submit") Eliminar
+      if ["administrador", "mesa_coordinadora", "trabajo_social"].includes(usuarioActual.rol)
+        a.boton(href=`/proyectos/${proyecto._id}/editar`) Editar
+      if ["administrador", "mesa_coordinadora"].includes(usuarioActual.rol)
+        form.form-inline(action=`/proyectos/${proyecto._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar este proyecto?');")
+          button.boton.boton-peligro(type="submit") Eliminar
 
   p.organizacion Organización responsable: #{organizacion ? organizacion.nombre : "No encontrada"}
 
@@ -17,54 +19,69 @@ block contenido
       span.etiqueta Total donado
       span.valor= "$" + totalDonado.toLocaleString("es-AR")
     div.tarjeta
-      span.etiqueta Total gastado
+      span.etiqueta Total gastado aprobado
       span.valor= "$" + totalGastado.toLocaleString("es-AR")
+    div.tarjeta
+      span.etiqueta Total comprometido (incluye pendientes)
+      span.valor= "$" + totalComprometido.toLocaleString("es-AR")
     div.tarjeta.destacada
       span.etiqueta Saldo disponible
       span.valor= "$" + saldoDisponible.toLocaleString("es-AR")
 
-  .encabezado-seccion
-    h2 Donaciones recibidas
-    a.boton.boton-primario(href=`/donaciones/nueva?proyectoId=${proyecto._id}`) + Nueva donación
-  if donaciones.length === 0
-    p.vacio Este proyecto todavía no recibió donaciones.
-  else
-    table.tabla
-      thead
-        tr
-          th Donante
-          th Monto
-          th Fecha
-          th Utilizada
-          th
-      tbody
-        each donacion in donaciones
+  if ["administrador", "administracion", "auditoria", "mesa_coordinadora"].includes(usuarioActual.rol)
+    .encabezado-seccion
+      h2 Donaciones recibidas
+      if ["administrador", "administracion"].includes(usuarioActual.rol)
+        a.boton.boton-primario(href=`/donaciones/nueva?proyectoId=${proyecto._id}`) + Nueva donación
+    if donaciones.length === 0
+      p.vacio Este proyecto todavía no recibió donaciones.
+    else
+      table.tabla
+        thead
           tr
-            td= donacion.donanteNombre
-            td= "$" + donacion.monto.toLocaleString("es-AR")
-            td= new Date(donacion.fecha).toLocaleDateString("es-AR")
-            td= donacion.utilizada ? "Sí" : "No"
-            td
-              if !donacion.utilizada
-                a.boton.boton-chico(href=`/donaciones/${donacion._id}/editar`) Editar
-                form.form-inline(action=`/donaciones/${donacion._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar esta donación?');")
-                  button.boton.boton-chico.boton-peligro(type="submit") Eliminar
-
-  .encabezado-seccion
-    h2 Gastos registrados
-    a.boton.boton-primario(href=`/gastos/nuevo?proyectoId=${proyecto._id}`) + Nuevo gasto
-  if gastos.length === 0
-    p.vacio Este proyecto todavía no registró gastos.
-  else
-    table.tabla
-      thead
-        tr
-          th Descripción
-          th Monto
-          th Fecha
-      tbody
-        each gasto in gastos
+            th Donante
+            th Monto
+            th Fecha
+            th
+        tbody
+          each donacion in donaciones
+            tr
+              td= donacion.donanteNombre
+              td= "$" + donacion.monto.toLocaleString("es-AR")
+              td= new Date(donacion.fecha).toLocaleDateString("es-AR")
+              td
+                if gastos.length === 0 && ["administrador", "administracion"].includes(usuarioActual.rol)
+                  a.boton.boton-chico(href=`/donaciones/${donacion._id}/editar`) Editar
+                  form.form-inline(action=`/donaciones/${donacion._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar esta donación?');")
+                    button.boton.boton-chico.boton-peligro(type="submit") Eliminar
+  
+  if usuarioActual.rol !== "trabajo_social"
+    .encabezado-seccion
+      h2 Gastos registrados
+      if usuarioActual.rol === "referente_territorial"
+        a.boton.boton-primario(href=`/gastos/nuevo?proyectoId=${proyecto._id}`) + Nuevo gasto
+    if gastos.length === 0
+      p.vacio Este proyecto todavía no registró gastos.
+    else
+      table.tabla
+        thead
           tr
-            td= gasto.descripcion
-            td= "$" + gasto.monto.toLocaleString("es-AR")
-            td= new Date(gasto.fecha).toLocaleDateString("es-AR")
+            th Descripción
+            th Monto
+            th Fecha
+            th Rubro
+            th Estado
+            th Comprobante
+        tbody
+          each gasto in gastos
+            tr
+              td= gasto.descripcion
+              td= "$" + gasto.monto.toLocaleString("es-AR")
+              td= new Date(gasto.fecha).toLocaleDateString("es-AR")
+              td= gasto.rubro
+              td= gasto.estado || "Registro anterior"
+              td
+                if gasto.comprobante
+                  a(href=`/rendiciones/${gasto._id}/comprobante` target="_blank" rel="noopener") Ver archivo
+                else
+                  span No digitalizado

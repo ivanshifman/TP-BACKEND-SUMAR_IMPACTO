@@ -3,7 +3,8 @@ extends ../layout
 block contenido
   .encabezado-seccion
     h1 Donantes
-    a.boton.boton-primario(href="/donantes/nuevo") + Nuevo donante
+    if ["administrador", "administracion"].includes(usuarioActual.rol)
+      a.boton.boton-primario(href="/donantes/nuevo") + Nuevo donante
 
   if donantes.length === 0
     p.vacio No hay donantes cargados todavía.

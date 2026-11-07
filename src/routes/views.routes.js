@@ -1,40 +1,46 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import * as controlador from "../controllers/viewsController.js";
-
+import * as auth from "../controllers/authController.js";
+import { autenticar, permitirRoles } from "../middleware/auth.js";
+import { ROLES } from "../config/security.js";
+import { uploadComprobante } from "../middleware/upload.js";
+import { body, param } from "express-validator";
+import { validar } from "../middleware/validate.js";
 const router = express.Router();
-
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: "draft-8", legacyHeaders: false });
+router.get("/login", auth.formularioLogin);
+router.post("/login", loginLimiter, auth.login);
+router.post("/logout", auth.logout);
+router.use(autenticar);
 router.get("/", controlador.inicio);
-router.get("/proyectos/nuevo", controlador.mostrarFormularioNuevoProyecto);
-router.post("/proyectos", controlador.crearProyectoDesdeFormulario);
-router.get("/proyectos/:id/editar", controlador.mostrarFormularioEditarProyecto);
-router.put("/proyectos/:id", controlador.actualizarProyectoDesdeFormulario);
-router.delete("/proyectos/:id", controlador.eliminarProyectoDesdeFormulario);
+router.get("/tutorial", (_req, res) => res.render("tutorial", { titulo: "Guía de uso | SumarImpacto" }));
+router.get("/proyectos/nuevo", permitirRoles(ROLES.ADMIN, ROLES.MESA, ROLES.TRABAJO_SOCIAL), controlador.mostrarFormularioNuevoProyecto);
+router.post("/proyectos", permitirRoles(ROLES.ADMIN, ROLES.MESA, ROLES.TRABAJO_SOCIAL), [body("nombre").trim().isLength({ min: 2, max: 120 }), body("organizacion").isMongoId(), body("presupuestoTotal").isFloat({ gt: 0 }), body("periodoInicio").isISO8601(), body("periodoFin").isISO8601(), body("rubros").isString().isLength({ min: 2 }), validar], controlador.crearProyectoDesdeFormulario);
+router.get("/proyectos/:id/editar", permitirRoles(ROLES.ADMIN, ROLES.MESA, ROLES.TRABAJO_SOCIAL), [param("id").isMongoId(), validar], controlador.mostrarFormularioEditarProyecto);
+router.put("/proyectos/:id", permitirRoles(ROLES.ADMIN, ROLES.MESA, ROLES.TRABAJO_SOCIAL), [param("id").isMongoId(), body("nombre").trim().isLength({ min: 2, max: 120 }), body("organizacion").isMongoId(), body("presupuestoTotal").isFloat({ gt: 0 }), body("periodoInicio").isISO8601(), body("periodoFin").isISO8601(), body("rubros").isString().isLength({ min: 2 }), validar], controlador.actualizarProyectoDesdeFormulario);
+router.delete("/proyectos/:id", permitirRoles(ROLES.ADMIN, ROLES.MESA), [param("id").isMongoId(), validar], controlador.eliminarProyectoDesdeFormulario);
 router.get("/proyectos/:id", controlador.detalleProyecto);
-
-router.get("/donantes", controlador.listarDonantes);
-router.get("/donantes/nuevo", controlador.mostrarFormularioNuevoDonante);
-router.post("/donantes", controlador.crearDonanteDesdeFormulario);
-router.get("/donantes/:id/editar", controlador.mostrarFormularioEditarDonante);
-router.put("/donantes/:id", controlador.actualizarDonanteDesdeFormulario);
-router.delete("/donantes/:id", controlador.eliminarDonanteDesdeFormulario);
-router.get("/donantes/:id", controlador.detalleDonante);
-
-router.get("/organizaciones", controlador.listarOrganizaciones);
-router.get("/organizaciones/nuevo", controlador.mostrarFormularioNuevaOrganizacion);
-router.post("/organizaciones", controlador.crearOrganizacionDesdeFormulario);
-router.get("/organizaciones/:id/editar", controlador.mostrarFormularioEditarOrganizacion);
-router.put("/organizaciones/:id", controlador.actualizarOrganizacionDesdeFormulario);
-router.delete("/organizaciones/:id", controlador.eliminarOrganizacionDesdeFormulario);
-router.get("/organizaciones/:id", controlador.detalleOrganizacion);
-
-router.get("/donaciones/nueva", controlador.mostrarFormularioNuevaDonacion);
-router.post("/donaciones", controlador.crearDonacionDesdeFormulario);
-router.get("/donaciones/:id/editar", controlador.mostrarFormularioEditarDonacion);
-router.put("/donaciones/:id", controlador.actualizarDonacionDesdeFormulario);
-router.delete("/donaciones/:id", controlador.eliminarDonacionDesdeFormulario);
-
-router.get("/gastos", controlador.listarGastos);
-router.get("/gastos/nuevo", controlador.mostrarFormularioNuevoGasto);
-router.post("/gastos", controlador.crearGastoDesdeFormulario);
-
+router.get("/donantes", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), controlador.listarDonantes);
+router.get("/donantes/nuevo", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), controlador.mostrarFormularioNuevoDonante);
+router.post("/donantes", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [body("nombre").trim().isLength({ min: 2, max: 120 }), body("email").isEmail().normalizeEmail(), body("tipo").isIn(["individual", "corporativo"]), body("frecuenciaNotificacion").optional().isIn(["inmediata", "semanal", "mensual"]), validar], controlador.crearDonanteDesdeFormulario);
+router.get("/donantes/:id/editar", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [param("id").isMongoId(), validar], controlador.mostrarFormularioEditarDonante);
+router.put("/donantes/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [param("id").isMongoId(), body("nombre").trim().isLength({ min: 2, max: 120 }), body("email").isEmail().normalizeEmail(), body("tipo").isIn(["individual", "corporativo"]), body("frecuenciaNotificacion").optional().isIn(["inmediata", "semanal", "mensual"]), validar], controlador.actualizarDonanteDesdeFormulario);
+router.delete("/donantes/:id", permitirRoles(ROLES.ADMIN), [param("id").isMongoId(), validar], controlador.eliminarDonanteDesdeFormulario);
+router.get("/donantes/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), controlador.detalleDonante);
+router.get("/organizaciones", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL, ROLES.MESA, ROLES.AUDITORIA, ROLES.ADMINISTRACION), controlador.listarOrganizaciones);
+router.get("/organizaciones/nuevo", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL), controlador.mostrarFormularioNuevaOrganizacion);
+router.post("/organizaciones", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL), [body("nombre").trim().isLength({ min: 2, max: 120 }), body("descripcion").trim().isLength({ min: 10, max: 1000 }), validar], controlador.crearOrganizacionDesdeFormulario);
+router.get("/organizaciones/:id/editar", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL), [param("id").isMongoId(), validar], controlador.mostrarFormularioEditarOrganizacion);
+router.put("/organizaciones/:id", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL), [param("id").isMongoId(), body("nombre").trim().isLength({ min: 2, max: 120 }), body("descripcion").trim().isLength({ min: 10, max: 1000 }), validar], controlador.actualizarOrganizacionDesdeFormulario);
+router.delete("/organizaciones/:id", permitirRoles(ROLES.ADMIN), [param("id").isMongoId(), validar], controlador.eliminarOrganizacionDesdeFormulario);
+router.get("/organizaciones/:id", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL, ROLES.MESA, ROLES.AUDITORIA, ROLES.ADMINISTRACION), controlador.detalleOrganizacion);
+router.get("/donaciones/nueva", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), controlador.mostrarFormularioNuevaDonacion);
+router.post("/donaciones", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [body("donante").isMongoId(), body("proyecto").optional({ values: "falsy" }).isMongoId(), body("campania").optional({ values: "falsy" }).isMongoId(), body("monto").isFloat({ gt: 0 }), validar], controlador.crearDonacionDesdeFormulario);
+router.get("/donaciones/:id/editar", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [param("id").isMongoId(), validar], controlador.mostrarFormularioEditarDonacion);
+router.put("/donaciones/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [param("id").isMongoId(), body("donante").isMongoId(), body("proyecto").optional({ values: "falsy" }).isMongoId(), body("campania").optional({ values: "falsy" }).isMongoId(), body("monto").isFloat({ gt: 0 }), validar], controlador.actualizarDonacionDesdeFormulario);
+router.delete("/donaciones/:id", permitirRoles(ROLES.ADMIN), [param("id").isMongoId(), validar], controlador.eliminarDonacionDesdeFormulario);
+router.get("/gastos", permitirRoles(ROLES.ADMIN, ROLES.REFERENTE, ROLES.AUDITORIA, ROLES.MESA, ROLES.ADMINISTRACION), controlador.listarGastos);
+router.get("/gastos/nuevo", permitirRoles(ROLES.REFERENTE), controlador.mostrarFormularioNuevoGasto);
+router.post("/gastos", permitirRoles(ROLES.REFERENTE), uploadComprobante, [body("proyecto").isMongoId(), body("monto").isFloat({ gt: 0 }), body("fecha").isISO8601(), body("rubro").trim().isLength({ min: 2, max: 80 }), body("descripcion").trim().isLength({ min: 3, max: 500 }), validar], controlador.crearGastoDesdeFormulario);
 export default router;

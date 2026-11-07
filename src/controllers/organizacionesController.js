@@ -1,4 +1,5 @@
 import Organizacion from "../models/Organizacion.js";
+import Proyecto from "../models/Proyecto.js";
 import ApiError from "../utils/ApiError.js";
 import httpStatus from "../utils/httpStatus.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -17,12 +18,12 @@ export const obtenerPorId = asyncHandler(async (req, res) => {
 });
 
 export const crear = asyncHandler(async (req, res) => {
-  const nuevaOrganizacion = await Organizacion.create(req.body);
+  const nuevaOrganizacion = await Organizacion.create({ nombre: req.body.nombre, descripcion: req.body.descripcion });
   res.status(httpStatus.CREATED).json(nuevaOrganizacion);
 });
 
 export const actualizar = asyncHandler(async (req, res) => {
-  const actualizada = await Organizacion.findByIdAndUpdate(req.params.id, req.body, {
+  const actualizada = await Organizacion.findByIdAndUpdate(req.params.id, { nombre: req.body.nombre, descripcion: req.body.descripcion }, {
     new: true,
     runValidators: true,
     context: "query",
@@ -34,6 +35,8 @@ export const actualizar = asyncHandler(async (req, res) => {
 });
 
 export const eliminar = asyncHandler(async (req, res) => {
+  const tieneProyectos = await Proyecto.exists({ organizacion: req.params.id });
+  if (tieneProyectos) throw ApiError.conflict("No se puede eliminar una organización con proyectos asociados.");
   const eliminada = await Organizacion.findByIdAndDelete(req.params.id);
   if (!eliminada) {
     throw ApiError.notFound(`No existe una organización con id ${req.params.id}.`);

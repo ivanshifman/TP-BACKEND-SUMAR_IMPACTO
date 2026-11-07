@@ -1,0 +1,50 @@
+extends ../layout
+block contenido
+  h1 Rendiciones de gastos
+  p.ayuda Cada comprobante se evalúa individualmente según presupuesto, período, rubro y saldo.
+  form.filtros(method="GET" action="/rendiciones")
+    label(for="estado") Filtrar por estado
+    select#estado(name="estado")
+      option(value="") Todos
+      each estado in ["recibido", "en_revision", "pendiente_mesa", "aprobado", "observado"]
+        option(value=estado selected=queryEstado === estado)= estado.replaceAll("_", " ")
+    button.boton(type="submit") Filtrar
+  if rendiciones.length === 0
+    p.vacio No hay rendiciones para mostrar.
+  else
+    table.tabla
+      thead
+        tr
+          th Proyecto
+          th Fecha
+          th Rubro
+          th Monto
+          th % presupuesto
+          th Estado
+          th Cargado por
+          th Comprobante
+          th Revisión
+      tbody
+        each item in rendiciones
+          tr
+            td= item.proyecto ? item.proyecto.nombre : "Proyecto eliminado"
+            td= new Date(item.fecha).toLocaleDateString("es-AR")
+            td= item.rubro
+            td= "$" + item.monto.toLocaleString("es-AR")
+            td= (item.porcentajePresupuesto || 0).toFixed(2) + "%"
+            td= (item.estado || "registro anterior").replaceAll("_", " ")
+            td= item.cargadoPor ? item.cargadoPor.nombre : "—"
+            td: a(href=`/rendiciones/${item._id}/comprobante` target="_blank" rel="noopener") Abrir
+            td
+              if ["en_revision", "recibido"].includes(item.estado) && usuarioActual.rol === "auditoria" && item.cargadoPor && item.cargadoPor._id.toString() !== usuarioActual._id.toString()
+                form.form-inline(action=`/rendiciones/${item._id}/revision` method="POST")
+                  button.boton.boton-chico(type="submit" name="accion" value="aprobar") Aprobar / derivar
+                  input(type="text" name="observacion" placeholder="Motivo si observás" maxlength="1000")
+                  button.boton.boton-chico.boton-peligro(type="submit" name="accion" value="observar") Observar
+              else if item.estado === "pendiente_mesa" && usuarioActual.rol === "mesa_coordinadora"
+                form.form-inline(action=`/rendiciones/${item._id}/revision` method="POST")
+                  button.boton.boton-chico(type="submit" name="accion" value="aprobar") Aprobar
+                  input(type="text" name="observacion" placeholder="Motivo si observás" maxlength="1000")
+                  button.boton.boton-chico.boton-peligro(type="submit" name="accion" value="observar") Observar
+              else
+                span= item.observacion || "—"

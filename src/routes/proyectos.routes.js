@@ -1,16 +1,17 @@
 import express from "express";
-import * as controlador from "../controllers/proyectosController.js";
-
-const router = express.Router();
-
-router.get("/:id/saldo", controlador.saldo);
-router.get("/:id/donaciones", controlador.donaciones);
-router.get("/:id/gastos", controlador.gastos);
-
-router.get("/", controlador.listar);
-router.get("/:id", controlador.obtenerPorId);
-router.post("/", controlador.crear);
-router.put("/:id", controlador.actualizar);
-router.delete("/:id", controlador.eliminar);
-
-export default router;
+import { body, param, query } from "express-validator";
+import * as c from "../controllers/proyectosController.js";
+import { permitirRoles } from "../middleware/auth.js";
+import { validar } from "../middleware/validate.js";
+import { ROLES } from "../config/security.js";
+const r = express.Router();
+r.get("/:id/saldo", [param("id").isMongoId(), validar], c.saldo);
+r.get("/:id/donaciones", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), [param("id").isMongoId(), validar], c.donaciones);
+r.get("/:id/gastos", permitirRoles(ROLES.ADMIN, ROLES.REFERENTE, ROLES.AUDITORIA, ROLES.MESA, ROLES.ADMINISTRACION), [param("id").isMongoId(), validar], c.gastos);
+r.get("/", [query("organizacionId").optional().isMongoId(), validar], c.listar);
+r.get("/:id", [param("id").isMongoId(), validar], c.obtenerPorId);
+const fields = [body("nombre").trim().isLength({ min: 2, max: 120 }), body("organizacion").isMongoId(), body("presupuestoTotal").isFloat({ gt: 0 }), body("periodoInicio").isISO8601(), body("periodoFin").isISO8601(), body("rubros").isArray({ min: 1 }), body("rubros.*.nombre").trim().isLength({ min: 2, max: 80 }), body("rubros.*.montoAprobado").isFloat({ gt: 0 }), validar];
+r.post("/", permitirRoles(ROLES.ADMIN, ROLES.MESA, ROLES.TRABAJO_SOCIAL), fields, c.crear);
+r.put("/:id", permitirRoles(ROLES.ADMIN, ROLES.MESA, ROLES.TRABAJO_SOCIAL), [param("id").isMongoId(), ...fields], c.actualizar);
+r.delete("/:id", permitirRoles(ROLES.ADMIN, ROLES.MESA), [param("id").isMongoId(), validar], c.eliminar);
+export default r;

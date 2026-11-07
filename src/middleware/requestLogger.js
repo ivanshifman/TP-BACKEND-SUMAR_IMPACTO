@@ -1,7 +1,6 @@
-export function requestLogger(req, res, next) {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.originalUrl}`);
+export function requestLogger(req, _res, next) {
+  const safePath = req.path.replace(/^\/comprobantes\/public\/[^/]+/, "/comprobantes/public/[token]");
+  console.log(`[${new Date().toISOString()}] ${req.method} ${safePath}`);
   next();
 }
-
 export default requestLogger;

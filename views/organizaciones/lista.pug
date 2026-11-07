@@ -3,7 +3,8 @@ extends ../layout
 block contenido
   .encabezado-seccion
     h1 Organizaciones
-    a.boton.boton-primario(href="/organizaciones/nuevo") + Nueva organización
+    if ["administrador", "trabajo_social"].includes(usuarioActual.rol)
+      a.boton.boton-primario(href="/organizaciones/nuevo") + Nueva organización
 
   if organizaciones.length === 0
     p.vacio No hay organizaciones cargadas todavía.

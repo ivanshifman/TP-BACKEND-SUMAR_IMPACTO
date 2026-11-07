@@ -1,12 +1,14 @@
 import express from "express";
-import * as controlador from "../controllers/donacionesController.js";
-
-const router = express.Router();
-
-router.get("/", controlador.listar);
-router.get("/:id", controlador.obtenerPorId);
-router.post("/", controlador.crear);
-router.put("/:id", controlador.actualizar);
-router.delete("/:id", controlador.eliminar);
-
-export default router;
+import { body, param, query } from "express-validator";
+import * as c from "../controllers/donacionesController.js";
+import { permitirRoles } from "../middleware/auth.js";
+import { validar } from "../middleware/validate.js";
+import { ROLES } from "../config/security.js";
+const r = express.Router();
+r.get("/", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), [query("donanteId").optional().isMongoId(), query("proyectoId").optional().isMongoId(), validar], c.listar);
+r.get("/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), [param("id").isMongoId(), validar], c.obtenerPorId);
+const fields = [body("donante").isMongoId(), body("proyecto").optional({ values: "falsy" }).isMongoId(), body("campania").optional({ values: "falsy" }).isMongoId(), body("monto").isFloat({ gt: 0 }), validar];
+r.post("/", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), fields, c.crear);
+r.put("/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [param("id").isMongoId(), ...fields], c.actualizar);
+r.delete("/:id", permitirRoles(ROLES.ADMIN), [param("id").isMongoId(), validar], c.eliminar);
+export default r;

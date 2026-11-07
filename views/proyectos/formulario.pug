@@ -30,6 +30,18 @@ block contenido
       label(for="montoObjetivo") Monto objetivo (opcional)
       input#montoObjetivo(type="number" name="montoObjetivo" min="0.01" step="0.01" value=proyecto.montoObjetivo)
 
+    .campo
+      label(for="presupuestoTotal") Presupuesto total aprobado
+      input#presupuestoTotal(type="number" name="presupuestoTotal" min="0.01" step="0.01" value=proyecto.presupuestoTotal required)
+    .campo
+      label(for="periodoInicio") Inicio del período
+      input#periodoInicio(type="date" name="periodoInicio" value=proyecto.periodoInicio ? new Date(proyecto.periodoInicio).toISOString().slice(0,10) : "" required)
+    .campo
+      label(for="periodoFin") Fin del período
+      input#periodoFin(type="date" name="periodoFin" value=proyecto.periodoFin ? new Date(proyecto.periodoFin).toISOString().slice(0,10) : "" required)
+    .campo
+      label(for="rubros") Rubros aprobados (uno por línea: Nombre: Monto)
+      textarea#rubros(name="rubros" rows="5" required)= proyecto.rubros ? proyecto.rubros.map(r => `${r.nombre}: ${r.montoAprobado}`).join("\n") : "Alimentos: 100000\nInsumos: 50000"
     .acciones-formulario
       button.boton.boton-primario(type="submit")= modo === "crear" ? "Crear proyecto" : "Guardar cambios"
       a.boton(href=modo === "crear" ? "/" : `/proyectos/${proyecto._id}`) Cancelar

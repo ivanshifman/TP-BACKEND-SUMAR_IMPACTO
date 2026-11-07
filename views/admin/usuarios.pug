@@ -1,0 +1,53 @@
+extends ../layout
+block contenido
+  h1 Gestión de usuarios
+  p.ayuda Las cuentas se crean desde Administración. No existe registro público.
+  form.formulario(action="/admin/usuarios" method="POST")
+    h2 Crear usuario
+    .campo
+      label(for="nombre") Nombre completo
+      input#nombre(type="text" name="nombre" required minlength="2" maxlength="100")
+    .campo
+      label(for="email") Email
+      input#email(type="email" name="email" required maxlength="254")
+    .campo
+      label(for="password") Contraseña inicial
+      input#password(type="password" name="password" required minlength="12" autocomplete="new-password")
+      small Mínimo 12 caracteres, mayúscula, minúscula, número y símbolo.
+    .campo
+      label(for="confirmarPassword") Repetir contraseña
+      input#confirmarPassword(type="password" name="confirmarPassword" required minlength="12" autocomplete="new-password")
+    .campo
+      label(for="rol") Rol
+      select#rol(name="rol" required)
+        each label, key in roles
+          option(value=key)= label
+    .campo
+      label(for="organizacion") Organización (obligatoria para referentes)
+      select#organizacion(name="organizacion")
+        option(value="") Sin organización
+        each organizacion in organizaciones
+          option(value=organizacion._id)= organizacion.nombre
+    button.boton.boton-primario(type="submit") Crear usuario
+  h2 Usuarios registrados
+  table.tabla
+    thead
+      tr
+        th Nombre
+        th Email
+        th Rol
+        th Organización
+        th Estado
+        th Acción
+    tbody
+      each usuario in usuarios
+        tr
+          td= usuario.nombre
+          td= usuario.email
+          td= roles[usuario.rol] || usuario.rol
+          td= usuario.organizacion ? usuario.organizacion.nombre : "—"
+          td= usuario.activo ? "Activo" : "Inactivo"
+          td
+            if usuario._id.toString() !== usuarioActual._id.toString()
+              form.form-inline(action=`/admin/usuarios/${usuario._id}/estado` method="POST")
+                button.boton.boton-chico(type="submit")= usuario.activo ? "Desactivar" : "Activar"

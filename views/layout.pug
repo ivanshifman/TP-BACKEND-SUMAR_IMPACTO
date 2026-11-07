@@ -11,9 +11,22 @@ html(lang="es")
       p.tagline Trazabilidad y gestión de donaciones para proyectos sociales
       nav.nav
         a(href="/") Proyectos
-        a(href="/donantes") Donantes
-        a(href="/organizaciones") Organizaciones
-        a(href="/gastos") Gastos
+        if usuarioActual && ["administrador", "administracion", "auditoria", "mesa_coordinadora"].includes(usuarioActual.rol)
+          a(href="/donantes") Donantes
+        if usuarioActual && ["administrador", "trabajo_social", "mesa_coordinadora", "auditoria", "administracion"].includes(usuarioActual.rol)
+          a(href="/organizaciones") Organizaciones
+        if usuarioActual && ["administrador", "referente_territorial", "auditoria", "mesa_coordinadora", "administracion"].includes(usuarioActual.rol)
+          a(href="/gastos") Gastos
+          a(href="/rendiciones") Rendiciones
+        a(href="/tutorial") Ayuda
+        if usuarioActual && usuarioActual.rol === "administrador"
+          a(href="/admin") Administración
+        if usuarioActual && ["administrador", "mesa_coordinadora", "administracion"].includes(usuarioActual.rol)
+          a(href="/admin/campanias") Campañas
+        if usuarioActual
+          span.usuario-nav= usuarioActual.nombre
+          form.form-inline(action="/logout" method="POST")
+            button.boton.boton-chico(type="submit") Salir
     main.contenido
       block contenido
     footer.pie

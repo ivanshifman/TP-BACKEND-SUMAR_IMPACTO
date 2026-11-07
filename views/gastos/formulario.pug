@@ -5,7 +5,7 @@ block contenido
 
   p.ayuda El sistema valida automáticamente que el monto no supere el saldo disponible del proyecto seleccionado.
 
-  form.formulario(action="/gastos" method="POST")
+  form.formulario(action="/gastos" method="POST" enctype="multipart/form-data")
     .campo
       label(for="proyecto") Proyecto
       select#proyecto(name="proyecto" required)
@@ -21,8 +21,25 @@ block contenido
       input#monto(type="number" name="monto" min="0.01" step="0.01" required)
 
     .campo
+      label(for="fecha") Fecha del comprobante
+      input#fecha(type="date" name="fecha" required)
+
+    .campo
+      label(for="rubro") Rubro presupuestado
+      input#rubro(type="text" name="rubro" list="rubros-lista" required placeholder="Ej.: Alimentos")
+      datalist#rubros-lista
+        each p in proyectos
+          each r in (p.rubros || [])
+            option(value=r.nombre)
+      small Si elegís “otro”, la rendición pasa a revisión de Auditoría.
+
+    .campo
       label(for="descripcion") Descripción
-      input#descripcion(type="text" name="descripcion" minlength="3" required)
+      textarea#descripcion(name="descripcion" minlength="3" maxlength="500" rows="3" required)
+
+    .campo
+      label(for="comprobante") Comprobante (JPG, PNG, WEBP o PDF; máximo 5 MB)
+      input#comprobante(type="file" name="comprobante" accept="image/jpeg,image/png,image/webp,application/pdf" required)
 
     .acciones-formulario
       button.boton.boton-primario(type="submit") Registrar gasto

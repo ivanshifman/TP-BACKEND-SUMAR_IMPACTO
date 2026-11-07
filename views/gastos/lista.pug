@@ -3,7 +3,8 @@ extends ../layout
 block contenido
   .encabezado-seccion
     h1 Gastos registrados
-    a.boton.boton-primario(href="/gastos/nuevo") + Nuevo gasto
+    if usuarioActual.rol === "referente_territorial"
+      a.boton.boton-primario(href="/gastos/nuevo") + Nuevo gasto
 
   if gastos.length === 0
     p.vacio Todavía no se registraron gastos en ningún proyecto.
@@ -15,6 +16,8 @@ block contenido
           th Descripción
           th Monto
           th Fecha
+          th Estado
+          th Comprobante
       tbody
         each gasto in gastos
           tr
@@ -23,3 +26,9 @@ block contenido
             td= gasto.descripcion
             td= "$" + gasto.monto.toLocaleString("es-AR")
             td= new Date(gasto.fecha).toLocaleDateString("es-AR")
+            td= gasto.estado || "Registro anterior"
+            td
+              if gasto.comprobante
+                a(href=`/rendiciones/${gasto._id}/comprobante` target="_blank" rel="noopener") Ver archivo
+              else
+                span No digitalizado

@@ -1,0 +1,29 @@
+extends ../layout
+block contenido
+  .encabezado-seccion
+    h1 Campañas
+    a.boton.boton-primario(href="/admin/campanias/nueva") + Nueva campaña
+  if campanias.length === 0
+    p.vacio No hay campañas cargadas.
+  else
+    table.tabla
+      thead
+        tr
+          th Campaña
+          th Meta
+          th Período
+          th Estado
+          th
+      tbody
+        each item in campanias
+          tr
+            td= item.nombre
+            td= "$" + item.meta.toLocaleString("es-AR")
+            td= new Date(item.fechaInicio).toLocaleDateString("es-AR") + " – " + new Date(item.fechaFin).toLocaleDateString("es-AR")
+            td= item.activa ? "Activa" : "Finalizada"
+            td
+              a.boton(href=`/admin/campanias/${item._id}/reporte`) Ver reporte
+              if ["administrador", "mesa_coordinadora"].includes(usuarioActual.rol)
+                a.boton(href=`/admin/campanias/${item._id}/editar`) Editar
+                form.form-inline(action=`/admin/campanias/${item._id}/estado` method="POST")
+                  button.boton.boton-chico(type="submit")= item.activa ? "Desactivar" : "Activar"

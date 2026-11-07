@@ -2,6 +2,7 @@ import { isValidObjectId } from "mongoose";
 import Donacion from "../models/Donacion.js";
 import Donante from "../models/Donante.js";
 import Proyecto from "../models/Proyecto.js";
+import Gasto from "../models/Gasto.js";
 import ApiError from "../utils/ApiError.js";
 
 class DonacionService {
@@ -35,9 +36,10 @@ class DonacionService {
     if (!donacion) {
       throw ApiError.notFound(`No existe una donación con id ${donacionId}.`);
     }
-    if (donacion.utilizada) {
+    const hayRendiciones = donacion.proyecto ? await Gasto.exists({ proyecto: donacion.proyecto, estado: { $ne: "observado" } }) : false;
+    if (donacion.utilizada || hayRendiciones) {
       throw ApiError.conflict(
-        `La donación ${donacionId} ya fue utilizada en un gasto y no puede modificarse.`
+        `La donación ${donacionId} está vinculada a movimientos de rendición y no puede modificarse ni eliminarse para preservar la trazabilidad.`
       );
     }
     return donacion;

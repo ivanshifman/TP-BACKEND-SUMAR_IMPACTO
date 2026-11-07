@@ -40,7 +40,15 @@ class ProyectoService {
 
   async totalGastado(proyectoId) {
     const resultado = await Gasto.aggregate([
-      { $match: { proyecto: new mongoose.Types.ObjectId(proyectoId) } },
+      { $match: { proyecto: new mongoose.Types.ObjectId(proyectoId), $or: [{ estado: "aprobado" }, { estado: { $exists: false } }] } },
+      { $group: { _id: null, total: { $sum: "$monto" } } },
+    ]);
+    return resultado.length ? resultado[0].total : 0;
+  }
+
+  async totalComprometido(proyectoId) {
+    const resultado = await Gasto.aggregate([
+      { $match: { proyecto: new mongoose.Types.ObjectId(proyectoId), estado: { $ne: "observado" } } },
       { $group: { _id: null, total: { $sum: "$monto" } } },
     ]);
     return resultado.length ? resultado[0].total : 0;
@@ -48,15 +56,17 @@ class ProyectoService {
 
   async calcularSaldoDisponible(proyectoId) {
     await this.obtenerProyectoOFallar(proyectoId);
-    const [totalDonado, totalGastado] = await Promise.all([
+    const [totalDonado, totalGastado, totalComprometido] = await Promise.all([
       this.totalDonado(proyectoId),
       this.totalGastado(proyectoId),
+      this.totalComprometido(proyectoId),
     ]);
     return {
       proyectoId: String(proyectoId),
       totalDonado,
       totalGastado,
-      saldoDisponible: totalDonado - totalGastado,
+      totalComprometido,
+      saldoDisponible: totalDonado - totalComprometido,
     };
   }
 
@@ -69,20 +79,6 @@ class ProyectoService {
     }
   }
 
-  async marcarDonacionesUtilizadas(proyectoId, montoGasto) {
-    const donacionesDisponibles = await Donacion.find({
-      proyecto: proyectoId,
-      utilizada: false,
-    }).sort({ fecha: 1 });
-
-    let restante = montoGasto;
-    for (const donacion of donacionesDisponibles) {
-      if (restante <= 0) break;
-      donacion.utilizada = true;
-      await donacion.save();
-      restante -= donacion.monto;
-    }
-  }
 }
 
 export const proyectoService = new ProyectoService();

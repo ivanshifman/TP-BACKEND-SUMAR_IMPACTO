@@ -1,0 +1,15 @@
+extends ../layout
+block contenido
+  h1 Panel de control
+  p.ayuda Resumen operativo de la plataforma Red SumarImpacto.
+  .resumen.metricas
+    each valor, clave in metricas
+      .tarjeta
+        span.etiqueta= clave.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase())
+        span.valor= valor.toLocaleString("es-AR")
+  .encabezado-seccion
+    h2 Administración
+  .acciones-panel
+    a.boton.boton-primario(href="/admin/usuarios") Gestionar usuarios y roles
+    a.boton(href="/rendiciones") Revisar rendiciones
+    a.boton(href="/admin/campanias") Campañas y reportes

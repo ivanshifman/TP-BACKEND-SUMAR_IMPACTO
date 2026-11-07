@@ -1,0 +1,21 @@
+extends ../layout
+block contenido
+  a.volver(href="/admin/campanias") ← Volver a campañas
+  h1= campania.nombre
+  p= campania.descripcion
+  .resumen
+    .tarjeta
+      span.etiqueta Meta
+      span.valor= "$" + campania.meta.toLocaleString("es-AR")
+    .tarjeta
+      span.etiqueta Recaudado
+      span.valor= "$" + total.toLocaleString("es-AR")
+    .tarjeta
+      span.etiqueta Donaciones
+      span.valor= cantidad
+  p.ayuda Período consultado: #{new Date(desde).toLocaleDateString("es-AR")} a #{new Date(hasta).toLocaleDateString("es-AR")} (máximo 12 meses).
+  a.boton(href=`/admin/campanias/${campania._id}/reporte.pdf`) Descargar PDF
+  h2 Avance de campaña
+  .barra-progreso
+    .barra-progreso-valor(style=`width: ${porcentaje}%`)
+  p= porcentaje.toFixed(1) + "% de la meta"

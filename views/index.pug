@@ -3,7 +3,8 @@ extends layout
 block contenido
   .encabezado-seccion
     h1 Proyectos activos
-    a.boton.boton-primario(href="/proyectos/nuevo") + Nuevo proyecto
+    if ["administrador", "mesa_coordinadora", "trabajo_social"].includes(usuarioActual.rol)
+      a.boton.boton-primario(href="/proyectos/nuevo") + Nuevo proyecto
 
   if proyectos.length === 0
     p.vacio No hay proyectos cargados todavía.
@@ -15,6 +16,7 @@ block contenido
           th Organización
           th Total donado
           th Total gastado
+          th Comprometido
           th Saldo disponible
           th
       tbody
@@ -24,6 +26,7 @@ block contenido
             td= proyecto.organizacionNombre
             td= "$" + proyecto.totalDonado.toLocaleString("es-AR")
             td= "$" + proyecto.totalGastado.toLocaleString("es-AR")
+            td= "$" + proyecto.totalComprometido.toLocaleString("es-AR")
             td.saldo= "$" + proyecto.saldoDisponible.toLocaleString("es-AR")
             td
               a.boton(href=`/proyectos/${proyecto._id}`) Ver detalle

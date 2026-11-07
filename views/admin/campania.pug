@@ -1,0 +1,20 @@
+extends ../layout
+block contenido
+  h1= modo === "editar" ? "Editar campaña" : "Nueva campaña"
+  form.formulario(action=modo === "editar" ? `/admin/campanias/${campania._id}?_method=PUT` : "/admin/campanias" method="POST")
+    .campo
+      label(for="nombre") Nombre
+      input#nombre(type="text" name="nombre" value=campania.nombre required minlength="3" maxlength="120")
+    .campo
+      label(for="descripcion") Descripción
+      textarea#descripcion(name="descripcion" maxlength="1000" rows="3")= campania.descripcion || ""
+    .campo
+      label(for="meta") Meta de recaudación
+      input#meta(type="number" name="meta" value=campania.meta min="0.01" step="0.01" required)
+    .campo
+      label(for="fechaInicio") Inicio
+      input#fechaInicio(type="date" name="fechaInicio" value=campania.fechaInicio ? new Date(campania.fechaInicio).toISOString().slice(0,10) : "" required)
+    .campo
+      label(for="fechaFin") Fin
+      input#fechaFin(type="date" name="fechaFin" value=campania.fechaFin ? new Date(campania.fechaFin).toISOString().slice(0,10) : "" required)
+    button.boton.boton-primario(type="submit")= modo === "editar" ? "Guardar cambios" : "Crear campaña"

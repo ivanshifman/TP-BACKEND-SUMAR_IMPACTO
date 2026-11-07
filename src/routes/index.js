@@ -4,13 +4,19 @@ import organizacionesRoutes from "./organizaciones.routes.js";
 import proyectosRoutes from "./proyectos.routes.js";
 import donacionesRoutes from "./donaciones.routes.js";
 import gastosRoutes from "./gastos.routes.js";
-
+import { body } from "express-validator";
+import { validar } from "../middleware/validate.js";
+import { permitirRoles } from "../middleware/auth.js";
+import { ROLES } from "../config/security.js";
+import * as admin from "../controllers/adminController.js";
+import { autenticar } from "../middleware/auth.js";
 const router = express.Router();
-
+router.use(autenticar);
 router.use("/donantes", donantesRoutes);
 router.use("/organizaciones", organizacionesRoutes);
 router.use("/proyectos", proyectosRoutes);
 router.use("/donaciones", donacionesRoutes);
 router.use("/gastos", gastosRoutes);
-
+router.get("/usuarios", permitirRoles(ROLES.ADMIN), admin.apiListarUsuarios);
+router.post("/usuarios", permitirRoles(ROLES.ADMIN), [body("nombre").trim().isLength({ min: 2, max: 100 }), body("email").isEmail().normalizeEmail(), body("password").isString().isLength({ min: 12 }), body("rol").isIn(Object.values(ROLES)), validar], admin.apiCrearUsuario);
 export default router;

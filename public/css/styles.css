@@ -262,3 +262,24 @@ h1 {
   border-radius: 4px;
   margin-bottom: 16px;
 }
+
+/* Componentes agregados en la versión 1.1 */
+.usuario-nav { color: #6b5745; font-size: .9rem; font-weight: 600; }
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; background: #f6f6ef; }
+.login-card { width: min(100%, 440px); padding: 2rem; background: #fff; border: 1px solid #e8dfd3; border-radius: 16px; box-shadow: 0 12px 35px rgba(60, 45, 30, .08); }
+.login-card .logo { display: inline-block; margin-bottom: 1rem; color: #8b7355; font-size: 1.5rem; font-weight: 800; text-decoration: none; }
+.login-card h1 { margin: .25rem 0 1rem; }
+.login-card .boton { width: 100%; margin-top: .5rem; }
+.metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+.acciones-panel { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
+.filtros { display: flex; align-items: end; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
+.filtros label { display: block; }
+.barra-progreso { height: 14px; overflow: hidden; border-radius: 999px; background: #eee6dc; }
+.barra-progreso-valor { height: 100%; border-radius: inherit; background: #b8885a; }
+.login-card .campo small, .formulario .campo small { display: block; margin-top: .35rem; color: #766b60; font-size: .82rem; }
+@media (max-width: 680px) {
+  .nav { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .usuario-nav { width: 100%; }
+  .login-card { padding: 1.25rem; }
+  .tabla { display: block; overflow-x: auto; white-space: nowrap; }
+}

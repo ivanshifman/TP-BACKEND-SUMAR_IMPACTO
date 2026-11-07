@@ -15,6 +15,9 @@ import Organizacion from "../src/models/Organizacion.js";
 import Proyecto from "../src/models/Proyecto.js";
 import Donacion from "../src/models/Donacion.js";
 import Gasto from "../src/models/Gasto.js";
+import Campania from "../src/models/Campania.js";
+import Usuario from "../src/models/Usuario.js";
+import Notificacion from "../src/models/Notificacion.js";
 
 async function seed() {
   await connectDB();
@@ -26,6 +29,8 @@ async function seed() {
     Proyecto.deleteMany({}),
     Donacion.deleteMany({}),
     Gasto.deleteMany({}),
+    Campania.deleteMany({}),
+    Notificacion.deleteMany({}),
   ]);
 
   console.log("Creando donantes...");
@@ -51,8 +56,8 @@ async function seed() {
 
   console.log("Creando proyectos...");
   const [cocina, kits] = await Proyecto.create([
-    { nombre: "Reequipamiento de cocina comunitaria", organizacion: comedor._id, montoObjetivo: 500000 },
-    { nombre: "Kits escolares 2026", organizacion: fundacion._id, montoObjetivo: 300000 },
+    { nombre: "Reequipamiento de cocina comunitaria", organizacion: comedor._id, montoObjetivo: 500000, presupuestoTotal: 500000, periodoInicio: new Date("2026-01-01"), periodoFin: new Date("2026-12-31"), rubros: [{ nombre: "Alimentos", montoAprobado: 200000 }, { nombre: "Insumos", montoAprobado: 150000 }, { nombre: "Equipamiento", montoAprobado: 150000 }] },
+    { nombre: "Kits escolares 2026", organizacion: fundacion._id, montoObjetivo: 300000, presupuestoTotal: 300000, periodoInicio: new Date("2026-01-01"), periodoFin: new Date("2026-12-31"), rubros: [{ nombre: "Útiles", montoAprobado: 180000 }, { nombre: "Mochilas", montoAprobado: 120000 }] },
   ]);
 
   console.log("Creando donaciones...");
@@ -62,6 +67,12 @@ async function seed() {
     { donante: jorge._id, proyecto: kits._id, monto: 80000, fecha: new Date("2026-08-10") },
   ]);
 
+  const campania = await Campania.create({ nombre: "Vuelta a clases 2026", descripcion: "Campaña de apoyo escolar", meta: 300000, fechaInicio: new Date("2026-01-01"), fechaFin: new Date("2026-12-31") });
+  await Donacion.updateMany({ proyecto: kits._id }, { $set: { campania: campania._id } });
+  if (process.env.BOOTSTRAP_ADMIN_EMAIL && process.env.BOOTSTRAP_ADMIN_PASSWORD) {
+    const email = process.env.BOOTSTRAP_ADMIN_EMAIL.toLowerCase().trim();
+    if (!(await Usuario.exists({ email }))) await Usuario.create({ nombre: process.env.BOOTSTRAP_ADMIN_NAME || "Administrador", email, password: process.env.BOOTSTRAP_ADMIN_PASSWORD, rol: "administrador" });
+  }
   console.log("Datos de ejemplo cargados correctamente.");
   await mongoose.connection.close();
 }

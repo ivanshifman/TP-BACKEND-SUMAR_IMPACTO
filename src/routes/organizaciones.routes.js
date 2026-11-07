@@ -1,12 +1,14 @@
 import express from "express";
-import * as controlador from "../controllers/organizacionesController.js";
-
-const router = express.Router();
-
-router.get("/", controlador.listar);
-router.get("/:id", controlador.obtenerPorId);
-router.post("/", controlador.crear);
-router.put("/:id", controlador.actualizar);
-router.delete("/:id", controlador.eliminar);
-
-export default router;
+import { body, param } from "express-validator";
+import * as c from "../controllers/organizacionesController.js";
+import { permitirRoles } from "../middleware/auth.js";
+import { validar } from "../middleware/validate.js";
+import { ROLES } from "../config/security.js";
+const r = express.Router();
+r.get("/", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL, ROLES.MESA, ROLES.AUDITORIA, ROLES.ADMINISTRACION), c.listar);
+r.get("/:id", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL, ROLES.MESA, ROLES.AUDITORIA, ROLES.ADMINISTRACION), [param("id").isMongoId(), validar], c.obtenerPorId);
+const fields = [body("nombre").trim().isLength({ min: 2, max: 120 }), body("descripcion").trim().isLength({ min: 10, max: 1000 }), validar];
+r.post("/", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL), fields, c.crear);
+r.put("/:id", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL), [param("id").isMongoId(), ...fields], c.actualizar);
+r.delete("/:id", permitirRoles(ROLES.ADMIN), [param("id").isMongoId(), validar], c.eliminar);
+export default r;

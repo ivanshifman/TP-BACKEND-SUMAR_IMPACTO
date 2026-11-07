@@ -9,6 +9,7 @@ const donacionSchema = new Schema(
       ref: "Donante",
       required: [true, "El campo 'donante' es obligatorio."],
     },
+    campania: { type: Schema.Types.ObjectId, ref: "Campania", default: null },
     proyecto: {
       type: Schema.Types.ObjectId,
       ref: "Proyecto",

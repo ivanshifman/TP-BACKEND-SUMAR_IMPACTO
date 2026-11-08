@@ -30,11 +30,12 @@ IFTS N° 29 · Comisión A · 2.º Cuatrimestre 2026
 15. [Pruebas](#pruebas)
 16. [Migración desde la versión 1.0](#migración-desde-la-versión-10)
 17. [Estructura del proyecto](#estructura-del-proyecto)
-18. [Documentación adicional](#documentación-adicional)
-19. [Solución de problemas](#solución-de-problemas)
-20. [Alcance y limitaciones conocidas](#alcance-y-limitaciones-conocidas)
-21. [Bibliografía](#bibliografía)
-22. [Equipo](#equipo)
+18. [Despliegue](#despliegue)
+19. [Documentación adicional](#documentación-adicional)
+20. [Solución de problemas](#solución-de-problemas)
+21. [Alcance y limitaciones conocidas](#alcance-y-limitaciones-conocidas)
+22. [Bibliografía](#bibliografía)
+23. [Equipo](#equipo)
 
 ---
 
@@ -91,7 +92,7 @@ ambas sobre la misma lógica de negocio.
 | Archivos | `multer` (en memoria) con validación de tipo MIME y firma binaria |
 | Correo | `nodemailer` (SMTP) |
 | Reportes | `pdfkit` |
-| Pruebas | Runner nativo de Node (`node --test`) |
+| Pruebas | Jest 30 (ESM) + Supertest |
 
 ---
 
@@ -237,7 +238,9 @@ Todas se definen en `.env` (ver `.env.example`).
 | `npm run create-admin` | Crea el primer usuario administrador desde las variables `BOOTSTRAP_ADMIN_*`. |
 | `npm run seed` | Carga datos de ejemplo (**borra** las colecciones del dominio). |
 | `npm run check` | Verifica la sintaxis de todos los archivos JS y compila todas las plantillas Pug. |
-| `npm test` | Ejecuta las pruebas unitarias (`node --test`). |
+| `npm test` | Ejecuta las pruebas unitarias y HTTP con Jest. |
+| `npm run test:watch` | Ejecuta Jest en modo observación. |
+| `npm run test:coverage` | Ejecuta las pruebas y genera cobertura en `coverage/`. |
 | `npm run migrate-v1.1` | Migra datos de la versión 1.0 a la 1.1 (ver [migración](#migración-desde-la-versión-10)). |
 
 ---
@@ -485,22 +488,28 @@ Las relaciones usan `ObjectId` nativo de MongoDB mediante `ref` de Mongoose.
 ## Pruebas
 
 ```bash
-npm run check   # sintaxis de todos los .js + compilación de todas las vistas Pug
-npm test        # pruebas unitarias
+npm run check          # sintaxis JavaScript + compilación de vistas Pug
+npm test               # pruebas unitarias y HTTP con Jest
+npm run test:watch     # modo observación
+npm run test:coverage  # suite y reporte de cobertura en coverage/
 ```
 
-Las pruebas automatizadas cubren las **reglas del circuito de rendición (RF-02)**:
+La suite automatizada tiene **57 pruebas**: 16 unitarias/HTTP y 41 de integración. La integración usa un
+MongoDB temporal aislado y un SMTP local de prueba; no accede a Atlas ni manda correos externos. La primera
+ejecución descarga el binario de MongoDB a la caché local del usuario. Cubre las reglas del circuito RF-02:
 
 - aprobación automática hasta el 5 % cuando se cumplen las reglas básicas y el tope mensual;
 - derivación a Auditoría cuando el acumulado automático mensual supera el 5 %;
 - envío a Auditoría entre el 5 % y el 30 %;
 - intervención de Mesa Coordinadora por encima del 30 %;
 - no aprobar automáticamente comprobantes que incumplen reglas básicas;
-- rechazo de presupuestos o importes inválidos;
-- parametrización de los umbrales.
+- rechazo de presupuestos o importes inválidos y parametrización de los umbrales;
+- autenticación y rotación de tokens, permisos por rol y aislamiento organizacional;
+- carga y validación de comprobantes, transiciones RF-02, SMTP, reportes y errores persistidos;
+- pruebas HTTP de salud, autenticación requerida, redirección de páginas protegidas y rechazo de orígenes no autorizados.
 
-El plan completo de pruebas de integración (autenticación, autorización por rol, carga de archivos,
-notificaciones, reportes y manejo de errores) está en [`docs/TESTING.md`](docs/TESTING.md).
+Las verificaciones de despliegue, rendimiento de 1.000 eventos/minuto y SMTP real siguen pendientes. Los casos
+y resultados se detallan en [`docs/TESTING.md`](docs/TESTING.md).
 
 ---
 
@@ -543,9 +552,52 @@ sumarimpacto-backend/
 │   ├── routes/                # Rutas de la API, vistas, auth y administración
 │   ├── services/              # Lógica de negocio (saldo, donaciones, rendiciones, notificaciones)
 │   └── utils/                 # ApiError, asyncHandler, tokens, reglas de rendición
-├── tests/                     # Pruebas unitarias
+├── tests/                     # Pruebas unitarias y HTTP con Jest
 └── views/                     # Vistas Pug (layout, admin, auth, proyectos, donantes, gastos, etc.)
 ```
+
+---
+
+## Despliegue
+
+### Recomendación: servicio Node persistente + MongoDB Atlas
+
+Para esta versión recomiendo desplegar como **Web Service de Node.js en Render** (o un servicio equivalente
+que mantenga un proceso Express activo) y usar MongoDB Atlas como base administrada. Es la opción más directa
+porque el servidor inicia un worker de notificaciones SMTP dentro del mismo proceso.
+
+1. Subí el proyecto a GitHub sin incluir `.env`.
+2. En Render creá un **Web Service** conectado al repositorio, con `npm ci` como comando de build y `npm start`
+   como comando de inicio. Configurá el health check como `/health`.
+3. En las variables del servicio configurá `NODE_ENV=production`, `MONGODB_URI`, dos secretos JWT distintos
+   de al menos 32 caracteres, `COMPROBANTE_LINK_SECRET` (si se usan enlaces públicos), `APP_BASE_URL` con la
+   URL HTTPS asignada y `CORS_ORIGINS` con los orígenes exactos permitidos. Configurá también `SMTP_*` si se
+   quieren enviar correos. El proveedor asigna `PORT`; no lo fijes a un valor local.
+4. En Atlas autorizá la salida de red del proveedor de hosting y elegí una región cercana a la aplicación.
+   Preferí una allowlist acotada a permitir conexiones desde cualquier IP.
+5. Después del primer despliegue, creá el administrador con `npm run create-admin` desde la consola del
+   servicio. No ejecutes `npm run seed` en producción.
+6. Probá `/health`, el login, una ruta protegida, una carga de comprobante y, si SMTP está habilitado, una
+   notificación de prueba.
+
+Las instancias gratuitas de Render pueden suspenderse por inactividad. Cuando el proceso está suspendido, el
+worker integrado no procesa la cola hasta que la instancia vuelva a estar activa. Para notificaciones
+continuas, usá una instancia siempre activa o separá el worker en un servicio de background persistente.
+Los comprobantes se guardan en MongoDB, no en el disco efímero de la instancia.
+
+### ¿Se puede desplegar en Vercel?
+
+Sí. Vercel admite aplicaciones Express, pero convierte la aplicación en una Function que escala bajo demanda.
+No recomiendo desplegar esta versión sin cambios: el worker basado en `setInterval` necesita un proceso
+persistente, y el limitador de solicitudes actual usa memoria local al proceso. Para Vercel habría que mover
+el procesamiento de notificaciones a un worker/cola externa o a una ruta protegida invocada por un schedule,
+y usar un almacén compartido para el rate limit si se necesita consistencia entre instancias. Los archivos
+estáticos deben servirse desde `public/`; Vercel no usa `express.static()` para ellos.
+
+Referencias: [Express en Vercel](https://vercel.com/docs/frameworks/backend/express),
+[Vercel Functions](https://vercel.com/docs/functions),
+[Web Services en Render](https://render.com/docs/web-services) y
+[limitaciones del plan gratuito de Render](https://render.com/docs/free).
 
 ---
 
@@ -556,8 +608,7 @@ sumarimpacto-backend/
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Decisiones de arquitectura, diagramas y flujos |
 | [`docs/MIGRATION.md`](docs/MIGRATION.md) | Guía de migración 1.0 → 1.1 |
 | [`docs/TESTING.md`](docs/TESTING.md) | Plan y evidencia de pruebas |
-| [`docs/ENTREGA-DSWB.md`](docs/ENTREGA-DSWB.md) | Guía para la documentación y defensa de la entrega |
-| [`docs/Informe_Tecnico_Backend_1.1.pdf`](docs/Informe_Tecnico_Backend_1.1.pdf) | Informe técnico de la versión 1.1 |
+| [`docs/INFORME-TECNICO-BACKEND-1.1.md`](docs/INFORME-TECNICO-BACKEND-1.1.md) | Informe técnico actualizado de la versión 1.1 |
 
 ---
 

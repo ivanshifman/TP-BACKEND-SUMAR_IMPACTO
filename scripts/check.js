@@ -1,12 +1,12 @@
 import { readdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-async function walk(dir) {
+async function walk(dir, extension = ".js") {
   const out = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...await walk(full));
-    else if (full.endsWith(".js")) out.push(full);
+    if (entry.isDirectory()) out.push(...await walk(full, extension));
+    else if (full.endsWith(extension)) out.push(full);
   }
   return out;
 }
@@ -16,7 +16,7 @@ console.log(`Sintaxis JavaScript correcta: ${files.length} archivos.`);
 try {
   const pugModule = await import("pug");
   const pug = pugModule.default;
-  const templates = (await walk("views")).filter((file) => file.endsWith(".pug"));
+  const templates = await walk("views", ".pug");
   for (const file of templates) pug.compileFile(file);
   console.log(`Plantillas Pug compiladas correctamente: ${templates.length}.`);
 } catch (error) {

@@ -1,7 +1,7 @@
 {
   "name": "sumarimpacto-backend",
   "version": "1.1.0",
-  "description": "Backend seguro de Red SumarImpacto - IFTS N\u00b0 29",
+  "description": "Backend seguro de Red SumarImpacto - IFTS N° 29",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -9,7 +9,9 @@
     "dev": "nodemon server.js",
     "seed": "node data/seed.js",
     "create-admin": "node scripts/create-admin.js",
-    "test": "node --test",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --coverage",
     "check": "node scripts/check.js",
     "migrate-v1.1": "node scripts/migrate-v1.1.js"
   },
@@ -23,27 +25,31 @@
   "author": "Ivan Ezequiel Shifman, Angel Sabato, Flavio Rinaldi, Marcelo Zarate",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^18.0.7",
-    "express": "^4.22.2",
-    "method-override": "^3.0.0",
-    "mongoose": "^9.11.1",
-    "pug": "^3.0.4",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.7",
+    "express": "^4.22.2",
     "express-rate-limit": "^8.1.0",
     "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "method-override": "^3.0.0",
+    "mongoose": "^9.11.1",
     "multer": "^2.0.2",
+    "nodemailer": "^10.4.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "cors": "^2.8.5",
-    "nodemailer": "^7.0.10",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.17.2",
+    "pug": "^3.0.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "jest": "^30.5.2",
+    "mongodb-memory-server-core": "^10.4.3",
+    "nodemon": "^3.1.14",
+    "smtp-server": "^3.21.3",
+    "supertest": "^7.3.2"
   },
   "engines": {
     "node": ">=20"

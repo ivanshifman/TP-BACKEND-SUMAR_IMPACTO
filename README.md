@@ -167,6 +167,9 @@ administrador. Para generar secretos seguros:
 openssl rand -base64 48
 ```
 
+Para usar MongoDB Atlas, copiá la URI de conexión del cluster en `MONGODB_URI` y autorizá la IP de salida
+de tu entorno en **Network Access** de Atlas. No compartas la URI ni subas `.env` al repositorio.
+
 > Los dos secretos JWT deben tener **al menos 32 caracteres** y ser **distintos entre sí**; el servidor se
 > niega a iniciar si no se cumple.
 
@@ -245,6 +248,10 @@ Todas se definen en `.env` (ver `.env.example`).
 | `RENDICION_AUTO_MAX_PCT` | | `5` | Porcentaje máximo para aprobación automática. |
 | `RENDICION_MESA_MIN_PCT` | | `30` | Porcentaje a partir del cual interviene la Mesa Coordinadora. |
 | `RENDICION_AUTO_MONTHLY_CAP_PCT` | | `5` | Tope mensual acumulado de aprobaciones automáticas. |
+
+Para resolver los registros SRV de MongoDB Atlas, la aplicación usa Google Public DNS (`8.8.8.8`) y
+Cloudflare (`1.1.1.1`), en vez del DNS configurado en la red local. La red debe permitir consultas DNS
+salientes.
 
 > 🔒 **Nunca subas el archivo `.env` al repositorio.** Está excluido por `.gitignore`. Si una credencial se
 > expuso, rotala.
@@ -752,8 +759,8 @@ Referencias: [Express en Vercel](https://vercel.com/docs/frameworks/backend/expr
 - No hay **autenticación de dos factores** ni cierre de sesión remoto por dispositivo.
 - Los estados visibles para el donante y el canal formal de comunicación quedan fuera de los incrementos
   actuales.
-- Las suites de integración requieren descargar un binario de MongoDB la primera vez y deben ejecutarse y
-  registrarse con `npm test` antes de la entrega (ver [`docs/TESTING.md`](docs/TESTING.md)).
+- Las suites de integración requieren descargar un binario de MongoDB la primera vez; la evidencia de la última
+  ejecución está en [`docs/TESTING.md`](docs/TESTING.md).
 
 ---
 

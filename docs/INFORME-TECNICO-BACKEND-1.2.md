@@ -122,28 +122,23 @@ base descartable de desarrollo, nunca con datos reales.
 
 ## 6. Pruebas y estado de verificación
 
-**Ejecutado en la revisión de la versión 1.2**
+**Verificación automatizada más reciente: 2026-11-11 (Windows, Node.js v24.17.0)**
 
 | Verificación | Resultado |
 |---|---|
 | `npm run check` | Sintaxis correcta en 68 archivos JavaScript; 25 plantillas Pug compiladas. |
-| Suites sin base de datos | 126 de 126 pruebas correctas con un ejecutor mínimo compatible con la API de Jest (cada archivo en un proceso aislado): reglas de rendición, política de contraseñas, utilidades, matriz de permisos, bitácora, servicios, vistas y seguridad HTTP. |
-| `app.test.js` | Sus cuatro aserciones se verificaron de forma equivalente con `fetch`. |
-| Contrato OpenAPI | Las 39 rutas reales de la API están documentadas; no hay rutas documentadas inexistentes. |
-| Matriz de permisos | Las 82 rutas de la versión anterior conservan exactamente los mismos permisos; solo se agregaron las nuevas. |
+| `npm test` con Jest | 11 suites y 184 pruebas aprobadas, incluidas las dos suites de integración con MongoDB temporal y aislado. |
+| `npm run test:coverage` | 74.39 % de sentencias, 68.42 % de ramas, 65.05 % de funciones y 76.75 % de líneas; reporte HTML en `coverage/lcov-report/index.html`. |
+| `npm audit --omit=dev` y `npm audit` | Pendiente de ejecutar. |
 
-**Pendiente de ejecutar y registrar por el equipo** (ver [`TESTING.md`](TESTING.md))
+El registro detallado de la ejecución está en [`TESTING.md`](TESTING.md). La prueba de matriz de permisos
+normaliza finales de línea para Windows y Unix; las pruebas HTTP de `app.test.js` aíslan la bitácora para
+no requerir MongoDB.
 
-| Verificación | Estado |
-|---|---|
-| `npm test` con Jest, incluida la integración con MongoDB aislado (`integration` e `integration.v12`) | Pendiente: requiere descargar el binario de MongoDB; no pudo ejecutarse en el entorno de revisión. |
-| `npm run test:coverage` | Pendiente de volver a medir. |
-| `npm audit --omit=dev` y `npm audit` | Pendiente de volver a ejecutar: se retiraron dependencias. |
-
-**Verificaciones de la versión 1.1 (históricas, no repetidas en esta revisión):** el equipo informó 0
-vulnerabilidades en dependencias de producción, 20 de severidad baja o moderada en el árbol completo
-(principalmente de desarrollo), respuesta HTTP 200 en `/`, `/login` y `/health`, y conexión comprobada a MongoDB
-Atlas desde el entorno local. Deben repetirse para dejar la evidencia de la 1.2.
+**Verificaciones de la versión 1.1 (históricas):** el equipo informó 0 vulnerabilidades en dependencias de
+producción, 20 de severidad baja o moderada en el árbol completo (principalmente de desarrollo), respuesta
+HTTP 200 en `/`, `/login` y `/health`, y conexión a MongoDB Atlas desde el entorno local. Estos resultados no
+reemplazan la verificación del entorno de despliegue actual.
 
 Las pruebas de integración usan `mongodb-memory-server-core` para persistencia aislada: no escriben en Atlas.
 Siguen pendientes las pruebas de despliegue en hosting y las de carga y rendimiento.
@@ -179,8 +174,8 @@ y [limitaciones del plan gratuito de Render](https://render.com/docs/free).
 
 ## 8. Pendientes para la entrega académica
 
-- Ejecutar `npm test` en una máquina del equipo y guardar la evidencia (fecha, entorno y responsable) en
-  `TESTING.md`.
+- Repetir las verificaciones en el entorno de entrega y actualizar la evidencia de `TESTING.md` si cambia el
+  runtime o la configuración.
 - Desplegar y comprobar la aplicación públicamente; añadir al documento final la URL HTTPS.
 - Confirmar con Mesa Coordinadora los umbrales de rendición.
 - Definir con la cátedra si las notificaciones por correo (RF-03) deben formar parte de esta entrega.

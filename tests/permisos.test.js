@@ -7,7 +7,7 @@ import { ROLES } from "../src/config/security.js";
 
 describe("matriz de permisos", () => {
   test("coincide con la referencia versionada (cualquier cambio de permisos debe ser intencional)", () => {
-    const esperada = fs.readFileSync(new URL("./fixtures/matriz-permisos.txt", import.meta.url), "utf8");
+    const esperada = fs.readFileSync(new URL("./fixtures/matriz-permisos.txt", import.meta.url), "utf8").replace(/\r\n/g, "\n");
     // Si cambiaste permisos a propósito: npm run permisos > tests/fixtures/matriz-permisos.txt
     expect(generarMatriz(app)).toBe(esperada);
   });

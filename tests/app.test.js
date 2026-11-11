@@ -1,10 +1,18 @@
-import { afterAll, describe, expect, test } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import request from "supertest";
 import mongoose from "mongoose";
+import auditoriaService from "../src/services/AuditoriaService.js";
 import app from "../src/app.js";
 
 describe("HTTP app", () => {
+  const registrarOriginal = auditoriaService.registrar;
+
+  beforeAll(() => {
+    auditoriaService.registrar = async () => {};
+  });
+
   afterAll(async () => {
+    auditoriaService.registrar = registrarOriginal;
     if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
   });
 

@@ -26,30 +26,26 @@ No se requieren credenciales, `.env` ni Atlas. `mongodb-memory-server-core` desc
 primera vez que se ejecuta la integración; el binario queda en la caché del usuario y no se agrega al
 repositorio. En cada `push` y `pull request`, GitHub Actions ejecuta `npm run check` y `npm test`.
 
-## Estado de verificación de esta revisión
+## Estado de verificación
 
-Esta tabla distingue lo que se **ejecutó** durante la revisión de lo que el equipo debe **ejecutar y registrar**.
+Última ejecución local: 11-11-2026, Windows, Node.js v24.17.0.
 
 | Control | Estado | Detalle |
 | --- | --- | --- |
-| `npm run check` | Ejecutado | Sintaxis correcta en 68 archivos JavaScript; 25 plantillas Pug compiladas. |
-| Suites sin base de datos | Ejecutadas con un ejecutor mínimo compatible con la API de Jest | 126 de 126 pruebas correctas, cada archivo en un proceso aislado: `reglasRendicion` (12), `politicaPassword` (8), `utilidades` (28), `permisos` (7), `auditoria` (9), `servicios` (26), `vistas` (16) y `seguridad.http` (20). |
-| `app.test.js` | Verificado de forma equivalente | Sus cuatro aserciones se replicaron con `fetch` (salud degradada, API protegida, redirección a login, origen no confiable). |
-| Contrato OpenAPI | Ejecutado | Las 39 rutas reales de la API están documentadas y no hay rutas documentadas inexistentes. |
-| Matriz de permisos | Ejecutado | Las 82 rutas de la versión anterior conservan exactamente los mismos permisos; solo se agregaron las rutas nuevas. |
-| `integration.test.js` e `integration.v12.test.js` | **Pendiente** | Requieren MongoDB (descarga del binario). No se pudieron ejecutar en el entorno de revisión. |
-| `npm test` con Jest | **Pendiente** | Ejecutarlo en una máquina del equipo y registrar el resultado más abajo. |
-| `npm run test:coverage` | **Pendiente** | Medir la cobertura tras ejecutar la suite completa. |
-| `npm audit --omit=dev` | **Pendiente** | Volver a ejecutarlo; se retiraron dependencias. |
+| `npm run check` | Aprobado | Sintaxis JavaScript correcta en 68 archivos y compilación correcta de 25 plantillas Pug. |
+| `npm test` | Aprobado | 11 suites y 184 pruebas con Jest; incluye las dos suites de integración contra MongoDB temporal y aislado. No accede a Atlas. |
+| `npm run test:coverage` | Aprobado | 11 suites y 184 pruebas; sentencias 74.39 %, ramas 68.42 %, funciones 65.05 % y líneas 76.75 %. Reporte HTML en `coverage/lcov-report/index.html`. |
+| `npm audit --omit=dev` | Pendiente | No se ejecutó en esta verificación. |
 
-> El ejecutor mínimo usado en la revisión no es Jest. Replica `describe`, `test`, `expect` y los hooks, pero el
-> registro oficial de la entrega debe hacerse con `npm test`.
+La prueba de matriz de permisos normaliza los finales de línea de su fixture para que la comparación sea
+igual en Windows y Unix. Las pruebas HTTP de `app.test.js` sustituyen la bitácora: esa suite comprueba
+middleware y respuestas sin necesitar una conexión MongoDB.
 
-## Registro de evidencia (completar antes de la entrega)
+## Registro de evidencia
 
 | Fecha | Responsable | Entorno (SO, Node) | `npm run check` | `npm test` | Cobertura | Observaciones |
 | --- | --- | --- | --- | --- | --- | --- |
-| | | | | | | |
+| 2026-11-11 | Agente de desarrollo (Copilot) | Windows, Node.js v24.17.0 | Aprobado | Aprobado: 11 suites, 184 pruebas | 74.39 % sentencias; 68.42 % ramas; 65.05 % funciones; 76.75 % líneas | Integración con MongoDB temporal; no se usó Atlas. |
 
 ## Matriz de casos
 

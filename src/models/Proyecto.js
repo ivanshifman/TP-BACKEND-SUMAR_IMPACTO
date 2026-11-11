@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
+
 const { Schema, model } = mongoose;
+
 const rubroSchema = new Schema({ nombre: { type: String, required: true, trim: true, maxlength: 80 }, montoAprobado: { type: Number, required: true, min: 0.01 } }, { _id: false });
 const proyectoSchema = new Schema({
   nombre: { type: String, required: true, trim: true, minlength: 2, maxlength: 120 },
@@ -18,5 +20,6 @@ proyectoSchema.pre("validate", function () {
     if (totalRubros > this.presupuestoTotal) this.invalidate("rubros", "La suma de rubros no puede superar el presupuesto total.");
   }
 });
+
 export const Proyecto = model("Proyecto", proyectoSchema);
 export default Proyecto;

@@ -21,7 +21,6 @@ const donanteSchema = new Schema(
       maxlength: 254,
       match: [/^\S+@\S+\.\S+$/, "El campo 'email' debe tener un formato válido."],
     },
-    frecuenciaNotificacion: { type: String, enum: ["inmediata", "semanal", "mensual"], default: "inmediata" },
     tipo: {
       type: String,
       required: [true, "El campo 'tipo' es obligatorio."],

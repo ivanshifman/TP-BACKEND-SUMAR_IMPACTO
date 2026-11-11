@@ -1,6 +1,7 @@
 import passport from "passport";
 import Usuario from "../models/Usuario.js";
 import ApiError from "../utils/ApiError.js";
+import usuarioService from "../services/UsuarioService.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { firmarAccessToken, firmarRefreshToken, verificarRefreshToken, hashToken, cookieOptions, ACCESS_COOKIE_MS, REFRESH_COOKIE_MS, compararHashToken } from "../utils/token.js";
 
@@ -24,6 +25,7 @@ export const login = (req, res, next) => passport.authenticate("local", { sessio
     return res.status(401).render("auth/login", { titulo: "Ingresar | SumarImpacto", error: info?.message || "Credenciales inválidas.", next: req.body.next || "/" });
   }
   try {
+    res.locals.usuarioAuditoria = user;
     const tokens = await emitirTokens(user, res);
     if (req.originalUrl.startsWith("/api")) return res.json({ usuario: user.toJSON(), accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, tokenType: "Bearer", expiresIn: process.env.JWT_ACCESS_TTL || "15m" });
     const nextUrl = typeof req.body.next === "string" && req.body.next.startsWith("/") && !(req.body.next.startsWith("//") || req.body.next.includes("\\") || req.body.next.includes("://")) ? req.body.next : "/";
@@ -47,6 +49,7 @@ export const logout = asyncHandler(async (req, res) => {
   if (token) {
     try {
       const payload = verificarRefreshToken(token);
+      res.locals.usuarioAuditoria = { _id: payload.sub };
       await Usuario.findByIdAndUpdate(payload.sub, { $set: { refreshTokenHash: null } });
     } catch { /* Token vencido: igualmente se limpian las cookies. */ }
   }
@@ -57,3 +60,22 @@ export const logout = asyncHandler(async (req, res) => {
 });
 
 export const perfil = asyncHandler(async (req, res) => res.json({ usuario: req.user }));
+
+// ── Cambio de contraseña de la propia persona ─────────────────────────────────────────────
+// Tras cambiarla se emiten tokens nuevos: la sesión actual continúa y las demás se invalidan.
+const respuestaDeTokens = (tokens) => ({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, tokenType: "Bearer" });
+
+export const cambiarPassword = asyncHandler(async (req, res) => {
+  const usuario = await usuarioService.cambiarPasswordPropia(req.user._id, req.body);
+  const tokens = await emitirTokens(usuario, res);
+  res.json({ mensaje: "Contraseña actualizada.", ...respuestaDeTokens(tokens) });
+});
+
+export const formularioPassword = (req, res) => res.render("auth/password", { titulo: "Mi contraseña | SumarImpacto", forzado: Boolean(req.user.debeCambiarPassword) });
+
+export const cambiarPasswordWeb = asyncHandler(async (req, res) => {
+  if (req.body.passwordNueva !== req.body.confirmarPassword) throw ApiError.badRequest("Las contraseñas nuevas no coinciden.");
+  const usuario = await usuarioService.cambiarPasswordPropia(req.user._id, req.body);
+  await emitirTokens(usuario, res);
+  res.redirect("/");
+});

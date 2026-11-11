@@ -17,7 +17,6 @@ import Donacion from "../src/models/Donacion.js";
 import Gasto from "../src/models/Gasto.js";
 import Campania from "../src/models/Campania.js";
 import Usuario from "../src/models/Usuario.js";
-import Notificacion from "../src/models/Notificacion.js";
 
 async function seed() {
   await connectDB();
@@ -30,7 +29,6 @@ async function seed() {
     Donacion.deleteMany({}),
     Gasto.deleteMany({}),
     Campania.deleteMany({}),
-    Notificacion.deleteMany({}),
   ]);
 
   console.log("Creando donantes...");

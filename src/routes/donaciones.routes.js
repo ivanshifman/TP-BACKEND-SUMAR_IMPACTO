@@ -1,14 +1,27 @@
 import express from "express";
 import { body, param, query } from "express-validator";
 import * as c from "../controllers/donacionesController.js";
-import { permitirRoles } from "../middleware/auth.js";
+import { permitirGrupo } from "../middleware/auth.js";
 import { validar } from "../middleware/validate.js";
-import { ROLES } from "../config/security.js";
+import { validarMonto, validarFechaNoFutura } from "../utils/validadores.js";
+
 const r = express.Router();
-r.get("/", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), [query("donanteId").optional().isMongoId(), query("proyectoId").optional().isMongoId(), validar], c.listar);
-r.get("/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), [param("id").isMongoId(), validar], c.obtenerPorId);
-const fields = [body("donante").isMongoId(), body("proyecto").optional({ values: "falsy" }).isMongoId(), body("campania").optional({ values: "falsy" }).isMongoId(), body("monto").isFloat({ gt: 0 }), validar];
-r.post("/", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), fields, c.crear);
-r.put("/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [param("id").isMongoId(), ...fields], c.actualizar);
-r.delete("/:id", permitirRoles(ROLES.ADMIN), [param("id").isMongoId(), validar], c.eliminar);
+const idValido = [param("id").isMongoId(), validar];
+
+r.get("/", permitirGrupo("LECTURA_FINANCIERA"), [query("donanteId").optional().isMongoId(), query("proyectoId").optional().isMongoId(), validar], c.listar);
+r.get("/:id", permitirGrupo("LECTURA_FINANCIERA"), idValido, c.obtenerPorId);
+
+const campos = [
+  body("donante").isMongoId(),
+  body("proyecto").optional({ values: "falsy" }).isMongoId(),
+  body("campania").optional({ values: "falsy" }).isMongoId(),
+  validarMonto("monto"),
+  validarFechaNoFutura("fecha", { opcional: true }),
+  validar,
+];
+
+r.post("/", permitirGrupo("GESTION_FINANCIERA"), campos, c.crear);
+r.put("/:id", permitirGrupo("GESTION_FINANCIERA"), [param("id").isMongoId(), ...campos], c.actualizar);
+r.delete("/:id", permitirGrupo("BAJA_REGISTROS"), idValido, c.eliminar);
+
 export default r;

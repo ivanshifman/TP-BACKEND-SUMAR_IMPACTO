@@ -3,7 +3,7 @@ extends ../layout
 block contenido
   .encabezado-seccion
     h1 Donantes
-    if ["administrador", "administracion"].includes(usuarioActual.rol)
+    if puede("GESTION_FINANCIERA")
       a.boton.boton-primario(href="/donantes/nuevo") + Nuevo donante
 
   if donantes.length === 0

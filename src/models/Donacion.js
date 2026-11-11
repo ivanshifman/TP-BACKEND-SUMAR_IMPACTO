@@ -24,10 +24,6 @@ const donacionSchema = new Schema(
       type: Date,
       default: Date.now,
     },
-    utilizada: {
-      type: Boolean,
-      default: false,
-    },
   },
   { timestamps: true }
 );

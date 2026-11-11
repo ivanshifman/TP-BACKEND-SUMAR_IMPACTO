@@ -4,8 +4,6 @@ const numero = (name, fallback) => {
   return value;
 };
 
-// Valores iniciales de la elicitación del informe de Ingeniería de Software.
-// Deben confirmarse con Mesa Coordinadora antes del despliegue real.
 export const UMBRAL_AUTO_APROBACION_PCT = numero("RENDICION_AUTO_MAX_PCT", 5);
 export const UMBRAL_MESA_COORDINADORA_PCT = numero("RENDICION_MESA_MIN_PCT", 30);
 export const TOPE_MENSUAL_AUTO_PCT = numero("RENDICION_AUTO_MONTHLY_CAP_PCT", 5);

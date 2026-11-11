@@ -6,10 +6,10 @@ block contenido
   .encabezado-seccion
     h1= organizacion.nombre
     .acciones
-      if ["administrador", "trabajo_social"].includes(usuarioActual.rol)
+      if puede("GESTION_ORGANIZACIONES")
         a.boton(href=`/organizaciones/${organizacion._id}/editar`) Editar
-      if usuarioActual.rol === "administrador"
-        form.form-inline(action=`/organizaciones/${organizacion._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar esta organización?');")
+      if puede("BAJA_REGISTROS")
+        form.form-inline(action=`/organizaciones/${organizacion._id}?_method=DELETE` method="POST" data-confirm="¿Eliminar esta organización?")
           button.boton.boton-peligro(type="submit") Eliminar
 
   .ficha
@@ -17,7 +17,7 @@ block contenido
 
   .encabezado-seccion
     h2 Proyectos de esta organización
-    if ["administrador", "mesa_coordinadora", "trabajo_social"].includes(usuarioActual.rol)
+    if puede("GESTION_PROYECTOS")
       a.boton.boton-primario(href="/proyectos/nuevo") + Nuevo proyecto
   if proyectos.length === 0
     p.vacio Esta organización todavía no tiene proyectos cargados.

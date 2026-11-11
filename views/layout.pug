@@ -5,26 +5,30 @@ html(lang="es")
     meta(name="viewport" content="width=device-width, initial-scale=1.0")
     title= titulo || "SumarImpacto"
     link(rel="stylesheet" href="/css/styles.css")
+    script(src="/js/app.js" defer)
   body
     header.encabezado
       a.logo(href="/") SumarImpacto
       p.tagline Trazabilidad y gestión de donaciones para proyectos sociales
       nav.nav
         a(href="/") Proyectos
-        if usuarioActual && ["administrador", "administracion", "auditoria", "mesa_coordinadora"].includes(usuarioActual.rol)
+        if usuarioActual && puede("LECTURA_FINANCIERA")
           a(href="/donantes") Donantes
-        if usuarioActual && ["administrador", "trabajo_social", "mesa_coordinadora", "auditoria", "administracion"].includes(usuarioActual.rol)
+        if usuarioActual && puede("LECTURA_ORGANIZACIONES")
           a(href="/organizaciones") Organizaciones
-        if usuarioActual && ["administrador", "referente_territorial", "auditoria", "mesa_coordinadora", "administracion"].includes(usuarioActual.rol)
+        if usuarioActual && puede("LECTURA_RENDICIONES")
           a(href="/gastos") Gastos
           a(href="/rendiciones") Rendiciones
         a(href="/tutorial") Ayuda
-        if usuarioActual && usuarioActual.rol === "administrador"
+        if usuarioActual && puede("ADMINISTRACION_SISTEMA")
           a(href="/admin") Administración
-        if usuarioActual && ["administrador", "mesa_coordinadora", "administracion"].includes(usuarioActual.rol)
+        if usuarioActual && puede("LECTURA_CAMPANIAS")
           a(href="/admin/campanias") Campañas
+        if usuarioActual && puede("CONSULTA_BITACORA")
+          a(href="/admin/auditoria") Bitácora
         if usuarioActual
           span.usuario-nav= usuarioActual.nombre
+          a(href="/perfil/password") Mi contraseña
           form.form-inline(action="/logout" method="POST")
             button.boton.boton-chico(type="submit") Salir
     main.contenido

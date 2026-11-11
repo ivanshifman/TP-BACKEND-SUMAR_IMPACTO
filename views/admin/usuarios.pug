@@ -12,11 +12,11 @@ block contenido
       input#email(type="email" name="email" required maxlength="254")
     .campo
       label(for="password") Contraseña inicial
-      input#password(type="password" name="password" required minlength="12" autocomplete="new-password")
-      small Mínimo 12 caracteres, mayúscula, minúscula, número y símbolo.
+      input#password(type="password" name="password" required minlength="12" maxlength="72" autocomplete="new-password")
+      small Entre 12 y 72 caracteres, con mayúscula, minúscula, número y símbolo. La persona deberá cambiarla en su primer ingreso.
     .campo
       label(for="confirmarPassword") Repetir contraseña
-      input#confirmarPassword(type="password" name="confirmarPassword" required minlength="12" autocomplete="new-password")
+      input#confirmarPassword(type="password" name="confirmarPassword" required minlength="12" maxlength="72" autocomplete="new-password")
     .campo
       label(for="rol") Rol
       select#rol(name="rol" required)
@@ -46,8 +46,12 @@ block contenido
           td= usuario.email
           td= roles[usuario.rol] || usuario.rol
           td= usuario.organizacion ? usuario.organizacion.nombre : "—"
-          td= usuario.activo ? "Activo" : "Inactivo"
           td
+            = usuario.activo ? "Activo" : "Inactivo"
+            if usuario.debeCambiarPassword
+              span.insignia Debe cambiar contraseña
+          td
+            a.boton.boton-chico(href=`/admin/usuarios/${usuario._id}/editar`) Editar
             if usuario._id.toString() !== usuarioActual._id.toString()
               form.form-inline(action=`/admin/usuarios/${usuario._id}/estado` method="POST")
                 button.boton.boton-chico(type="submit")= usuario.activo ? "Desactivar" : "Activar"

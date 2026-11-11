@@ -2,9 +2,11 @@ extends layout
 
 block contenido
   .encabezado-seccion
-    h1 Proyectos activos
-    if ["administrador", "mesa_coordinadora", "trabajo_social"].includes(usuarioActual.rol)
-      a.boton.boton-primario(href="/proyectos/nuevo") + Nuevo proyecto
+    h1= verInactivos ? "Todos los proyectos" : "Proyectos activos"
+    if puede("GESTION_PROYECTOS")
+      .acciones
+        a.boton(href=verInactivos ? "/" : "/?inactivos=1")= verInactivos ? "Ocultar inactivos" : "Ver inactivos"
+        a.boton.boton-primario(href="/proyectos/nuevo") + Nuevo proyecto
 
   if proyectos.length === 0
     p.vacio No hay proyectos cargados todavía.
@@ -22,7 +24,10 @@ block contenido
       tbody
         each proyecto in proyectos
           tr
-            td= proyecto.nombre
+            td
+              = proyecto.nombre
+              if proyecto.activo === false
+                span.insignia Inactivo
             td= proyecto.organizacionNombre
             td= "$" + proyecto.totalDonado.toLocaleString("es-AR")
             td= "$" + proyecto.totalGastado.toLocaleString("es-AR")

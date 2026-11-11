@@ -20,12 +20,12 @@ export const obtenerPorId = asyncHandler(async (req, res) => {
 });
 
 export const crear = asyncHandler(async (req, res) => {
-  const nuevoDonante = await Donante.create({ nombre: req.body.nombre, email: req.body.email, tipo: req.body.tipo, frecuenciaNotificacion: req.body.frecuenciaNotificacion || "inmediata" });
+  const nuevoDonante = await Donante.create({ nombre: req.body.nombre, email: req.body.email, tipo: req.body.tipo });
   res.status(httpStatus.CREATED).json(nuevoDonante);
 });
 
 export const actualizar = asyncHandler(async (req, res) => {
-  const actualizado = await Donante.findByIdAndUpdate(req.params.id, { nombre: req.body.nombre, email: req.body.email, tipo: req.body.tipo, frecuenciaNotificacion: req.body.frecuenciaNotificacion || "inmediata" }, {
+  const actualizado = await Donante.findByIdAndUpdate(req.params.id, { nombre: req.body.nombre, email: req.body.email, tipo: req.body.tipo }, {
     new: true,
     runValidators: true,
     context: "query",

@@ -1,14 +1,19 @@
 import express from "express";
 import { body, param } from "express-validator";
 import * as c from "../controllers/organizacionesController.js";
-import { permitirRoles } from "../middleware/auth.js";
+import { permitirGrupo } from "../middleware/auth.js";
 import { validar } from "../middleware/validate.js";
-import { ROLES } from "../config/security.js";
+
 const r = express.Router();
-r.get("/", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL, ROLES.MESA, ROLES.AUDITORIA, ROLES.ADMINISTRACION), c.listar);
-r.get("/:id", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL, ROLES.MESA, ROLES.AUDITORIA, ROLES.ADMINISTRACION), [param("id").isMongoId(), validar], c.obtenerPorId);
-const fields = [body("nombre").trim().isLength({ min: 2, max: 120 }), body("descripcion").trim().isLength({ min: 10, max: 1000 }), validar];
-r.post("/", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL), fields, c.crear);
-r.put("/:id", permitirRoles(ROLES.ADMIN, ROLES.TRABAJO_SOCIAL), [param("id").isMongoId(), ...fields], c.actualizar);
-r.delete("/:id", permitirRoles(ROLES.ADMIN), [param("id").isMongoId(), validar], c.eliminar);
+const idValido = [param("id").isMongoId(), validar];
+
+r.get("/", permitirGrupo("LECTURA_ORGANIZACIONES"), c.listar);
+r.get("/:id", permitirGrupo("LECTURA_ORGANIZACIONES"), idValido, c.obtenerPorId);
+
+const campos = [body("nombre").trim().isLength({ min: 2, max: 120 }), body("descripcion").trim().isLength({ min: 10, max: 1000 }), validar];
+
+r.post("/", permitirGrupo("GESTION_ORGANIZACIONES"), campos, c.crear);
+r.put("/:id", permitirGrupo("GESTION_ORGANIZACIONES"), [param("id").isMongoId(), ...campos], c.actualizar);
+r.delete("/:id", permitirGrupo("BAJA_REGISTROS"), idValido, c.eliminar);
+
 export default r;

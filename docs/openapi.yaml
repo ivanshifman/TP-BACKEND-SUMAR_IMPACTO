@@ -1,0 +1,695 @@
+openapi: 3.0.3
+info:
+  title: API de Red SumarImpacto
+  version: 1.2.0
+  description: |
+    API REST de la plataforma de transparencia y rendición de cuentas de SumarImpacto.
+
+    **Autenticación:** se obtiene un `accessToken` con `POST /api/auth/login` y se envía en el
+    encabezado `Authorization: Bearer <token>`. Una cuenta con cambio de contraseña pendiente
+    solo puede usar `/api/auth/password`, `/api/auth/me` y `/api/auth/logout`; el resto responde
+    `403` con código `PASSWORD_CHANGE_REQUIRED`.
+
+    **Roles:** `administrador`, `referente_territorial`, `auditoria`, `mesa_coordinadora`,
+    `administracion` y `trabajo_social`. Cada operación indica los roles que la pueden usar.
+
+    **Errores:** todas las respuestas de error tienen la forma `{ "error": true, "codigo": "...", "mensaje": "..." }`.
+servers:
+  - url: http://localhost:3000
+    description: Desarrollo local
+tags:
+  - { name: Auth, description: Ingreso, sesión y contraseña }
+  - { name: Usuarios, description: Gestión de cuentas (solo administrador) }
+  - { name: Donantes }
+  - { name: Organizaciones }
+  - { name: Proyectos }
+  - { name: Donaciones }
+  - { name: Gastos, description: Rendición de gastos y circuito de aprobación }
+  - { name: Auditoría, description: Bitácora de acciones }
+security:
+  - bearerAuth: []
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: Sesión iniciada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Sesion" }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "401": { $ref: "#/components/responses/CredencialesInvalidas" }
+        "429": { $ref: "#/components/responses/DemasiadasSolicitudes" }
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Renovar tokens (el refresh token rota en cada uso)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "200":
+          description: Tokens renovados.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tokens" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cerrar sesión (revoca el refresh token)
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "204": { description: Sesión cerrada. }
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Datos de la cuenta autenticada
+      responses:
+        "200":
+          description: Cuenta autenticada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario: { $ref: "#/components/schemas/Usuario" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+  /api/auth/password:
+    post:
+      tags: [Auth]
+      summary: Cambiar la propia contraseña
+      description: Exige la contraseña actual. Cierra las demás sesiones y devuelve tokens nuevos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [passwordActual, passwordNueva]
+              properties:
+                passwordActual: { type: string }
+                passwordNueva: { type: string, minLength: 12, maxLength: 72, description: Mayúscula, minúscula, número y símbolo; distinta de la actual. }
+      responses:
+        "200":
+          description: Contraseña actualizada.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Tokens"
+                  - type: object
+                    properties:
+                      mensaje: { type: string }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "429": { $ref: "#/components/responses/DemasiadasSolicitudes" }
+
+  /api/usuarios:
+    get:
+      tags: [Usuarios]
+      summary: Listar usuarios (administrador)
+      responses:
+        "200":
+          description: Lista de usuarios.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  datos: { type: array, items: { $ref: "#/components/schemas/Usuario" } }
+                  total: { type: integer }
+        "403": { $ref: "#/components/responses/Prohibido" }
+    post:
+      tags: [Usuarios]
+      summary: Crear usuario (administrador)
+      description: La cuenta queda con cambio de contraseña pendiente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UsuarioNuevo" }
+      responses:
+        "201":
+          description: Usuario creado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje: { type: string }
+                  usuario: { $ref: "#/components/schemas/Usuario" }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /api/usuarios/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    put:
+      tags: [Usuarios]
+      summary: Editar nombre, rol y organización (administrador)
+      description: Un cambio de rol u organización cierra las sesiones de la persona. No se puede cambiar el propio rol.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, rol]
+              properties:
+                nombre: { type: string }
+                rol: { $ref: "#/components/schemas/Rol" }
+                organizacion: { type: string, description: Obligatoria para referentes territoriales. }
+      responses:
+        "200": { description: Usuario actualizado. }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /api/usuarios/{id}/estado:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    patch:
+      tags: [Usuarios]
+      summary: Activar o desactivar un usuario (administrador)
+      responses:
+        "200": { description: Estado alternado. }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /api/usuarios/{id}/password:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      tags: [Usuarios]
+      summary: Restablecer la contraseña de un usuario (administrador)
+      description: La persona deberá elegir otra contraseña al ingresar. No se puede aplicar a la propia cuenta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [passwordNueva]
+              properties:
+                passwordNueva: { type: string, minLength: 12, maxLength: 72 }
+      responses:
+        "200": { description: Contraseña restablecida. }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+
+  /api/donantes:
+    get:
+      tags: [Donantes]
+      summary: Listar donantes (administrador, administración, auditoría, mesa)
+      parameters:
+        - { name: tipo, in: query, schema: { type: string, enum: [individual, corporativo] } }
+      responses:
+        "200": { description: Lista de donantes. }
+        "403": { $ref: "#/components/responses/Prohibido" }
+    post:
+      tags: [Donantes]
+      summary: Crear donante (administrador, administración)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DonanteNuevo" }
+      responses:
+        "201": { description: Donante creado. }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /api/donantes/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Donantes]
+      summary: Obtener un donante
+      responses:
+        "200": { description: Donante. }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    put:
+      tags: [Donantes]
+      summary: Actualizar un donante (administrador, administración)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DonanteNuevo" }
+      responses:
+        "200": { description: Donante actualizado. }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    delete:
+      tags: [Donantes]
+      summary: Eliminar un donante (administrador)
+      responses:
+        "204": { description: Eliminado. }
+        "409": { $ref: "#/components/responses/Conflicto" }
+
+  /api/organizaciones:
+    get:
+      tags: [Organizaciones]
+      summary: Listar organizaciones
+      responses:
+        "200": { description: Lista de organizaciones. }
+    post:
+      tags: [Organizaciones]
+      summary: Crear organización (administrador, trabajo social)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizacionNueva" }
+      responses:
+        "201": { description: Organización creada. }
+        "400": { $ref: "#/components/responses/Validacion" }
+  /api/organizaciones/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Organizaciones]
+      summary: Obtener una organización
+      responses:
+        "200": { description: Organización. }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    put:
+      tags: [Organizaciones]
+      summary: Actualizar una organización (administrador, trabajo social)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizacionNueva" }
+      responses:
+        "200": { description: Organización actualizada. }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    delete:
+      tags: [Organizaciones]
+      summary: Eliminar una organización (administrador)
+      responses:
+        "204": { description: Eliminada. }
+        "409": { $ref: "#/components/responses/Conflicto" }
+
+  /api/proyectos:
+    get:
+      tags: [Proyectos]
+      summary: Listar proyectos activos
+      description: Un referente territorial solo ve los de su organización.
+      parameters:
+        - { name: organizacionId, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Lista de proyectos. }
+    post:
+      tags: [Proyectos]
+      summary: Crear proyecto (administrador, mesa, trabajo social)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProyectoNuevo" }
+      responses:
+        "201": { description: Proyecto creado. }
+        "400": { $ref: "#/components/responses/Validacion" }
+  /api/proyectos/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Proyectos]
+      summary: Obtener un proyecto
+      responses:
+        "200": { description: Proyecto. }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    put:
+      tags: [Proyectos]
+      summary: Actualizar un proyecto (administrador, mesa, trabajo social)
+      description: No permite reducir el presupuesto o un rubro por debajo de lo ya rendido, ni quitar un rubro con rendiciones.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProyectoNuevo" }
+      responses:
+        "200": { description: Proyecto actualizado. }
+        "409": { $ref: "#/components/responses/Conflicto" }
+    delete:
+      tags: [Proyectos]
+      summary: Eliminar un proyecto sin movimientos (administrador, mesa)
+      responses:
+        "204": { description: Eliminado. }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /api/proyectos/{id}/estado:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    patch:
+      tags: [Proyectos]
+      summary: Activar o desactivar un proyecto (administrador, mesa, trabajo social)
+      description: Un proyecto inactivo no recibe donaciones ni rendiciones, pero conserva su historial.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [activo]
+              properties:
+                activo: { type: boolean }
+      responses:
+        "200": { description: Proyecto actualizado. }
+        "400": { $ref: "#/components/responses/Validacion" }
+  /api/proyectos/{id}/saldo:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Proyectos]
+      summary: Saldo disponible del proyecto
+      responses:
+        "200":
+          description: Totales del proyecto.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Saldo" }
+  /api/proyectos/{id}/donaciones:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Proyectos]
+      summary: Donaciones del proyecto (administrador, administración, auditoría, mesa)
+      responses:
+        "200": { description: Donaciones. }
+        "403": { $ref: "#/components/responses/Prohibido" }
+  /api/proyectos/{id}/gastos:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Proyectos]
+      summary: Rendiciones del proyecto
+      responses:
+        "200": { description: Rendiciones. }
+        "403": { $ref: "#/components/responses/Prohibido" }
+
+  /api/donaciones:
+    get:
+      tags: [Donaciones]
+      summary: Listar donaciones (administrador, administración, auditoría, mesa)
+      parameters:
+        - { name: donanteId, in: query, schema: { type: string } }
+        - { name: proyectoId, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Lista de donaciones. }
+    post:
+      tags: [Donaciones]
+      summary: Registrar donación (administrador, administración)
+      description: El proyecto debe estar activo; la campaña, vigente y abarcar la fecha; la fecha no puede ser futura.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DonacionNueva" }
+      responses:
+        "201": { description: Donación registrada. }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /api/donaciones/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Donaciones]
+      summary: Obtener una donación
+      responses:
+        "200": { description: Donación. }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    put:
+      tags: [Donaciones]
+      summary: Actualizar una donación sin rendiciones asociadas (administrador, administración)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DonacionNueva" }
+      responses:
+        "200": { description: Donación actualizada. }
+        "409": { $ref: "#/components/responses/Conflicto" }
+    delete:
+      tags: [Donaciones]
+      summary: Eliminar una donación sin rendiciones asociadas (administrador)
+      responses:
+        "204": { description: Eliminada. }
+        "409": { $ref: "#/components/responses/Conflicto" }
+
+  /api/gastos:
+    get:
+      tags: [Gastos]
+      summary: Listar rendiciones
+      description: Un referente territorial solo ve las de los proyectos de su organización.
+      parameters:
+        - { name: proyectoId, in: query, schema: { type: string } }
+        - { name: estado, in: query, schema: { $ref: "#/components/schemas/EstadoGasto" } }
+      responses:
+        "200": { description: Lista de rendiciones. }
+    post:
+      tags: [Gastos]
+      summary: Cargar una rendición con su comprobante (referente territorial)
+      description: |
+        El estado resultante depende del porcentaje sobre el presupuesto: hasta 5 % se aprueba
+        automáticamente si cumple las reglas básicas y el tope mensual; de 5 % a 30 % revisa Auditoría;
+        por encima de 30 % revisa Auditoría y resuelve la Mesa Coordinadora.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [proyecto, monto, fecha, rubro, descripcion, comprobante]
+              properties:
+                proyecto: { type: string }
+                monto: { type: number, maximum: 1000000000 }
+                fecha: { type: string, format: date, description: No puede ser futura. }
+                rubro: { type: string }
+                descripcion: { type: string, minLength: 3, maxLength: 500 }
+                comprobante: { type: string, format: binary, description: JPG, PNG, WEBP o PDF de hasta 5 MB. }
+      responses:
+        "201": { description: Rendición registrada. }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+        "413": { description: El archivo supera los 5 MB. }
+  /api/gastos/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Gastos]
+      summary: Obtener una rendición
+      responses:
+        "200": { description: Rendición. }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+  /api/gastos/{id}/revision:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    patch:
+      tags: [Gastos]
+      summary: Aprobar u observar una rendición (auditoría, mesa)
+      description: Nadie puede resolver una rendición que cargó. Observar exige un motivo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accion]
+              properties:
+                accion: { type: string, enum: [aprobar, observar] }
+                observacion: { type: string, maxLength: 1000 }
+      responses:
+        "200": { description: Rendición resuelta. }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+
+  /api/auditoria:
+    get:
+      tags: [Auditoría]
+      summary: Consultar la bitácora (administrador, auditoría)
+      description: Registra escrituras, accesos a comprobantes y reportes, e intentos de ingreso. Nunca guarda contraseñas ni cuerpos de solicitudes.
+      parameters:
+        - { name: pagina, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limite, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+        - { name: metodo, in: query, schema: { type: string, enum: [GET, POST, PUT, PATCH, DELETE] } }
+        - { name: resultado, in: query, schema: { type: string, enum: [ok, rechazado, error] } }
+        - { name: email, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Página de registros.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  datos: { type: array, items: { $ref: "#/components/schemas/RegistroAuditoria" } }
+                  total: { type: integer }
+                  pagina: { type: integer }
+                  limite: { type: integer }
+                  paginas: { type: integer }
+        "403": { $ref: "#/components/responses/Prohibido" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, description: Identificador de MongoDB (24 caracteres hexadecimales). }
+  responses:
+    Validacion:
+      description: Datos inválidos.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NoAutenticado:
+      description: Sin autenticación, token inválido o vencido.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    CredencialesInvalidas:
+      description: Credenciales inválidas.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Prohibido:
+      description: El rol no tiene permiso, el origen no está autorizado o hay un cambio de contraseña pendiente.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NoEncontrado:
+      description: El recurso no existe.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Conflicto:
+      description: La operación entra en conflicto con el estado actual (saldo, vínculos, concurrencia, reglas de negocio).
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    DemasiadasSolicitudes:
+      description: Se superó el límite de intentos.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: boolean, example: true }
+        codigo: { type: string, example: FORBIDDEN }
+        mensaje: { type: string }
+        detalles: { type: array, items: { type: object } }
+    Rol:
+      type: string
+      enum: [administrador, referente_territorial, auditoria, mesa_coordinadora, administracion, trabajo_social]
+    EstadoGasto:
+      type: string
+      enum: [recibido, en_revision, pendiente_mesa, aprobado, observado]
+    Tokens:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        tokenType: { type: string, example: Bearer }
+    Sesion:
+      allOf:
+        - $ref: "#/components/schemas/Tokens"
+        - type: object
+          properties:
+            usuario: { $ref: "#/components/schemas/Usuario" }
+            expiresIn: { type: string, example: 15m }
+    Usuario:
+      type: object
+      properties:
+        _id: { type: string }
+        nombre: { type: string }
+        email: { type: string, format: email }
+        rol: { $ref: "#/components/schemas/Rol" }
+        organizacion: { type: string, nullable: true }
+        activo: { type: boolean }
+        debeCambiarPassword: { type: boolean }
+    UsuarioNuevo:
+      type: object
+      required: [nombre, email, password, rol]
+      properties:
+        nombre: { type: string }
+        email: { type: string, format: email, description: Se guarda en minúsculas; no se altera la dirección. }
+        password: { type: string, minLength: 12, maxLength: 72, description: Mayúscula, minúscula, número y símbolo; sin el nombre de usuario del email. }
+        rol: { $ref: "#/components/schemas/Rol" }
+        organizacion: { type: string, description: Obligatoria para referentes territoriales. }
+    DonanteNuevo:
+      type: object
+      required: [nombre, email, tipo]
+      properties:
+        nombre: { type: string }
+        email: { type: string, format: email }
+        tipo: { type: string, enum: [individual, corporativo] }
+    OrganizacionNueva:
+      type: object
+      required: [nombre, descripcion]
+      properties:
+        nombre: { type: string }
+        descripcion: { type: string, minLength: 10 }
+    ProyectoNuevo:
+      type: object
+      required: [nombre, organizacion, presupuestoTotal, periodoInicio, periodoFin, rubros]
+      properties:
+        nombre: { type: string }
+        organizacion: { type: string }
+        montoObjetivo: { type: number }
+        presupuestoTotal: { type: number, maximum: 1000000000 }
+        periodoInicio: { type: string, format: date }
+        periodoFin: { type: string, format: date, description: No puede ser anterior al inicio. }
+        rubros:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [nombre, montoAprobado]
+            properties:
+              nombre: { type: string }
+              montoAprobado: { type: number }
+    DonacionNueva:
+      type: object
+      required: [donante, monto]
+      properties:
+        donante: { type: string }
+        proyecto: { type: string }
+        campania: { type: string }
+        monto: { type: number, maximum: 1000000000 }
+        fecha: { type: string, format: date-time, description: No puede ser futura. }
+    Saldo:
+      type: object
+      properties:
+        proyectoId: { type: string }
+        totalDonado: { type: number }
+        totalGastado: { type: number }
+        totalComprometido: { type: number }
+        saldoDisponible: { type: number }
+    RegistroAuditoria:
+      type: object
+      properties:
+        fecha: { type: string, format: date-time }
+        email: { type: string, nullable: true }
+        rol: { type: string, nullable: true }
+        metodo: { type: string }
+        ruta: { type: string }
+        recursoId: { type: string, nullable: true }
+        estado: { type: integer }
+        resultado: { type: string, enum: [ok, rechazado, error] }
+        ip: { type: string, nullable: true }

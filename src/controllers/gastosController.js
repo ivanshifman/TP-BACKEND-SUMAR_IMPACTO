@@ -4,14 +4,15 @@ import ApiError from "../utils/ApiError.js";
 import httpStatus from "../utils/httpStatus.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import rendicionService from "../services/RendicionService.js";
+import proyectoService from "../services/ProyectoService.js";
+import { ROLES } from "../config/security.js";
 
 export const listar = asyncHandler(async (req, res) => {
   const filtro = {};
   if (req.query.proyectoId) filtro.proyecto = req.query.proyectoId;
   if (req.query.estado) filtro.estado = req.query.estado;
-  if (req.user.rol === "referente_territorial") {
-    const proyectos = await Proyecto.find({ organizacion: req.user.organizacion }).select("_id");
-    filtro.proyecto = { $in: proyectos.map((p) => p._id) };
+  if (req.user.rol === ROLES.REFERENTE) {
+    filtro.proyecto = { $in: await proyectoService.idsDeProyectosDeLaOrganizacion(req.user) };
   }
   const gastos = await Gasto.find(filtro).select("-comprobante.contenido").populate("proyecto", "nombre").populate("cargadoPor", "nombre").sort({ fecha: -1 });
   res.status(httpStatus.OK).json(gastos);
@@ -20,9 +21,10 @@ export const listar = asyncHandler(async (req, res) => {
 export const obtenerPorId = asyncHandler(async (req, res) => {
   const gasto = await Gasto.findById(req.params.id).select("-comprobante.contenido").populate("proyecto", "nombre");
   if (!gasto) throw ApiError.notFound(`No existe una rendición con id ${req.params.id}.`);
-  if (req.user.rol === "referente_territorial") {
+  if (req.user.rol === ROLES.REFERENTE) {
     const proyecto = await Proyecto.findById(gasto.proyecto._id).select("organizacion");
-    if (!proyecto || String(proyecto.organizacion) !== String(req.user.organizacion)) throw ApiError.forbidden();
+    if (!proyecto) throw ApiError.forbidden();
+    proyectoService.validarAcceso(proyecto, req.user);
   }
   res.status(httpStatus.OK).json(gasto);
 });

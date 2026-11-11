@@ -283,3 +283,33 @@ h1 {
   .login-card { padding: 1.25rem; }
   .tabla { display: block; overflow-x: auto; white-space: nowrap; }
 }
+
+/* Insignias, filtros y paginación */
+.insignia {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background-color: #eef1f5;
+  color: #1f3864;
+  font-size: 12px;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin: 12px 0 16px;
+}
+
+.filtros .campo {
+  margin-bottom: 0;
+}
+
+.paginacion {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}

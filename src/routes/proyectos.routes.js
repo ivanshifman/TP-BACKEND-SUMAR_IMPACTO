@@ -1,17 +1,35 @@
 import express from "express";
 import { body, param, query } from "express-validator";
 import * as c from "../controllers/proyectosController.js";
-import { permitirRoles } from "../middleware/auth.js";
+import { permitirGrupo } from "../middleware/auth.js";
 import { validar } from "../middleware/validate.js";
-import { ROLES } from "../config/security.js";
+import { validarMonto } from "../utils/validadores.js";
+
 const r = express.Router();
-r.get("/:id/saldo", [param("id").isMongoId(), validar], c.saldo);
-r.get("/:id/donaciones", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), [param("id").isMongoId(), validar], c.donaciones);
-r.get("/:id/gastos", permitirRoles(ROLES.ADMIN, ROLES.REFERENTE, ROLES.AUDITORIA, ROLES.MESA, ROLES.ADMINISTRACION), [param("id").isMongoId(), validar], c.gastos);
+const idValido = [param("id").isMongoId(), validar];
+
+r.get("/:id/saldo", idValido, c.saldo);
+r.get("/:id/donaciones", permitirGrupo("LECTURA_FINANCIERA"), idValido, c.donaciones);
+r.get("/:id/gastos", permitirGrupo("LECTURA_RENDICIONES"), idValido, c.gastos);
 r.get("/", [query("organizacionId").optional().isMongoId(), validar], c.listar);
-r.get("/:id", [param("id").isMongoId(), validar], c.obtenerPorId);
-const fields = [body("nombre").trim().isLength({ min: 2, max: 120 }), body("organizacion").isMongoId(), body("presupuestoTotal").isFloat({ gt: 0 }), body("periodoInicio").isISO8601(), body("periodoFin").isISO8601(), body("rubros").isArray({ min: 1 }), body("rubros.*.nombre").trim().isLength({ min: 2, max: 80 }), body("rubros.*.montoAprobado").isFloat({ gt: 0 }), validar];
-r.post("/", permitirRoles(ROLES.ADMIN, ROLES.MESA, ROLES.TRABAJO_SOCIAL), fields, c.crear);
-r.put("/:id", permitirRoles(ROLES.ADMIN, ROLES.MESA, ROLES.TRABAJO_SOCIAL), [param("id").isMongoId(), ...fields], c.actualizar);
-r.delete("/:id", permitirRoles(ROLES.ADMIN, ROLES.MESA), [param("id").isMongoId(), validar], c.eliminar);
+r.get("/:id", idValido, c.obtenerPorId);
+
+const campos = [
+  body("nombre").trim().isLength({ min: 2, max: 120 }),
+  body("organizacion").isMongoId(),
+  validarMonto("presupuestoTotal"),
+  body("periodoInicio").isISO8601(),
+  body("periodoFin").isISO8601().bail()
+    .custom((fin, { req }) => new Date(fin) >= new Date(req.body.periodoInicio)).withMessage("El período de fin no puede ser anterior al de inicio."),
+  body("rubros").isArray({ min: 1 }),
+  body("rubros.*.nombre").trim().isLength({ min: 2, max: 80 }),
+  validarMonto("rubros.*.montoAprobado"),
+  validar,
+];
+
+r.post("/", permitirGrupo("GESTION_PROYECTOS"), campos, c.crear);
+r.put("/:id", permitirGrupo("GESTION_PROYECTOS"), [param("id").isMongoId(), ...campos], c.actualizar);
+r.patch("/:id/estado", permitirGrupo("GESTION_PROYECTOS"), [param("id").isMongoId(), body("activo").isBoolean({ strict: true }).withMessage("«activo» debe ser verdadero o falso."), validar], c.cambiarEstado);
+r.delete("/:id", permitirGrupo("BAJA_PROYECTOS"), idValido, c.eliminar);
+
 export default r;

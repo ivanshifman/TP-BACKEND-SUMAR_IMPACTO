@@ -1,0 +1,95 @@
+DELETE /api/donaciones/:id                            AUTH     administrador
+DELETE /api/donantes/:id                              AUTH     administrador
+DELETE /api/organizaciones/:id                        AUTH     administrador
+DELETE /api/proyectos/:id                             AUTH     administrador,mesa_coordinadora
+DELETE /donaciones/:id                                AUTH     administrador
+DELETE /donantes/:id                                  AUTH     administrador
+DELETE /organizaciones/:id                            AUTH     administrador
+DELETE /proyectos/:id                                 AUTH     administrador,mesa_coordinadora
+GET    /                                              AUTH     (sin restricción de rol)
+GET    /admin                                         AUTH     administrador
+GET    /admin/auditoria                               AUTH     administrador,auditoria
+GET    /admin/campanias                               AUTH     administracion,administrador,mesa_coordinadora
+GET    /admin/campanias/:id/editar                    AUTH     administrador,mesa_coordinadora
+GET    /admin/campanias/:id/reporte                   AUTH     administracion,administrador,mesa_coordinadora
+GET    /admin/campanias/:id/reporte.pdf               AUTH     administracion,administrador,mesa_coordinadora
+GET    /admin/campanias/nueva                         AUTH     administrador,mesa_coordinadora
+GET    /admin/usuarios                                AUTH     administrador
+GET    /admin/usuarios/:id/editar                     AUTH     administrador
+GET    /api/auditoria                                 AUTH     administrador,auditoria
+GET    /api/auth/me                                   AUTH     (sin restricción de rol)
+GET    /api/donaciones/                               AUTH     administracion,administrador,auditoria,mesa_coordinadora
+GET    /api/donaciones/:id                            AUTH     administracion,administrador,auditoria,mesa_coordinadora
+GET    /api/donantes/                                 AUTH     administracion,administrador,auditoria,mesa_coordinadora
+GET    /api/donantes/:id                              AUTH     administracion,administrador,auditoria,mesa_coordinadora
+GET    /api/gastos/                                   AUTH     administracion,administrador,auditoria,mesa_coordinadora,referente_territorial
+GET    /api/gastos/:id                                AUTH     administracion,administrador,auditoria,mesa_coordinadora,referente_territorial
+GET    /api/organizaciones/                           AUTH     administracion,administrador,auditoria,mesa_coordinadora,trabajo_social
+GET    /api/organizaciones/:id                        AUTH     administracion,administrador,auditoria,mesa_coordinadora,trabajo_social
+GET    /api/proyectos/                                AUTH     (sin restricción de rol)
+GET    /api/proyectos/:id                             AUTH     (sin restricción de rol)
+GET    /api/proyectos/:id/donaciones                  AUTH     administracion,administrador,auditoria,mesa_coordinadora
+GET    /api/proyectos/:id/gastos                      AUTH     administracion,administrador,auditoria,mesa_coordinadora,referente_territorial
+GET    /api/proyectos/:id/saldo                       AUTH     (sin restricción de rol)
+GET    /api/usuarios                                  AUTH     administrador
+GET    /donaciones/:id/editar                         AUTH     administracion,administrador
+GET    /donaciones/nueva                              AUTH     administracion,administrador
+GET    /donantes                                      AUTH     administracion,administrador,auditoria,mesa_coordinadora
+GET    /donantes/:id                                  AUTH     administracion,administrador,auditoria,mesa_coordinadora
+GET    /donantes/:id/editar                           AUTH     administracion,administrador
+GET    /donantes/nuevo                                AUTH     administracion,administrador
+GET    /gastos                                        AUTH     administracion,administrador,auditoria,mesa_coordinadora,referente_territorial
+GET    /gastos/nuevo                                  AUTH     referente_territorial
+GET    /health                                        PUBLICA  (sin restricción de rol)
+GET    /login                                         PUBLICA  (sin restricción de rol)
+GET    /organizaciones                                AUTH     administracion,administrador,auditoria,mesa_coordinadora,trabajo_social
+GET    /organizaciones/:id                            AUTH     administracion,administrador,auditoria,mesa_coordinadora,trabajo_social
+GET    /organizaciones/:id/editar                     AUTH     administrador,trabajo_social
+GET    /organizaciones/nuevo                          AUTH     administrador,trabajo_social
+GET    /perfil/password                               AUTH     (sin restricción de rol)
+GET    /proyectos/:id                                 AUTH     (sin restricción de rol)
+GET    /proyectos/:id/editar                          AUTH     administrador,mesa_coordinadora,trabajo_social
+GET    /proyectos/nuevo                               AUTH     administrador,mesa_coordinadora,trabajo_social
+GET    /rendiciones                                   AUTH     administracion,administrador,auditoria,mesa_coordinadora,referente_territorial
+GET    /rendiciones/:id/comprobante                   AUTH     administracion,administrador,auditoria,mesa_coordinadora,referente_territorial
+GET    /tutorial                                      AUTH     (sin restricción de rol)
+PATCH  /api/gastos/:id/revision                       AUTH     auditoria,mesa_coordinadora
+PATCH  /api/proyectos/:id/estado                      AUTH     administrador,mesa_coordinadora,trabajo_social
+PATCH  /api/usuarios/:id/estado                       AUTH     administrador
+POST   /admin/campanias                               AUTH     administrador,mesa_coordinadora
+POST   /admin/campanias/:id/estado                    AUTH     administrador,mesa_coordinadora
+POST   /admin/usuarios                                AUTH     administrador
+POST   /admin/usuarios/:id/estado                     AUTH     administrador
+POST   /admin/usuarios/:id/password                   AUTH     administrador
+POST   /api/auth/login                                PUBLICA  (sin restricción de rol)
+POST   /api/auth/logout                               PUBLICA  (sin restricción de rol)
+POST   /api/auth/password                             AUTH     (sin restricción de rol)
+POST   /api/auth/refresh                              PUBLICA  (sin restricción de rol)
+POST   /api/donaciones/                               AUTH     administracion,administrador
+POST   /api/donantes/                                 AUTH     administracion,administrador
+POST   /api/gastos/                                   AUTH     referente_territorial
+POST   /api/organizaciones/                           AUTH     administrador,trabajo_social
+POST   /api/proyectos/                                AUTH     administrador,mesa_coordinadora,trabajo_social
+POST   /api/usuarios                                  AUTH     administrador
+POST   /api/usuarios/:id/password                     AUTH     administrador
+POST   /donaciones                                    AUTH     administracion,administrador
+POST   /donantes                                      AUTH     administracion,administrador
+POST   /gastos                                        AUTH     referente_territorial
+POST   /login                                         PUBLICA  (sin restricción de rol)
+POST   /logout                                        PUBLICA  (sin restricción de rol)
+POST   /organizaciones                                AUTH     administrador,trabajo_social
+POST   /perfil/password                               AUTH     (sin restricción de rol)
+POST   /proyectos                                     AUTH     administrador,mesa_coordinadora,trabajo_social
+POST   /proyectos/:id/estado                          AUTH     administrador,mesa_coordinadora,trabajo_social
+POST   /rendiciones/:id/revision                      AUTH     auditoria,mesa_coordinadora
+PUT    /admin/campanias/:id                           AUTH     administrador,mesa_coordinadora
+PUT    /admin/usuarios/:id                            AUTH     administrador
+PUT    /api/donaciones/:id                            AUTH     administracion,administrador
+PUT    /api/donantes/:id                              AUTH     administracion,administrador
+PUT    /api/organizaciones/:id                        AUTH     administrador,trabajo_social
+PUT    /api/proyectos/:id                             AUTH     administrador,mesa_coordinadora,trabajo_social
+PUT    /api/usuarios/:id                              AUTH     administrador
+PUT    /donaciones/:id                                AUTH     administracion,administrador
+PUT    /donantes/:id                                  AUTH     administracion,administrador
+PUT    /organizaciones/:id                            AUTH     administrador,trabajo_social
+PUT    /proyectos/:id                                 AUTH     administrador,mesa_coordinadora,trabajo_social

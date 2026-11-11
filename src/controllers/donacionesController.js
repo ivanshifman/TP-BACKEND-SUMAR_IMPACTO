@@ -1,9 +1,11 @@
 import Donacion from "../models/Donacion.js";
-import Campania from "../models/Campania.js";
 import donacionService from "../services/DonacionService.js";
 import ApiError from "../utils/ApiError.js";
 import httpStatus from "../utils/httpStatus.js";
 import asyncHandler from "../utils/asyncHandler.js";
+
+// Lista cerrada de campos aceptados del cuerpo de la solicitud.
+const datosDelCuerpo = (body) => ({ donante: body.donante, proyecto: body.proyecto, campania: body.campania, monto: body.monto, fecha: body.fecha });
 
 export const listar = asyncHandler(async (req, res) => {
   const { donanteId, proyectoId } = req.query;
@@ -28,33 +30,17 @@ export const obtenerPorId = asyncHandler(async (req, res) => {
 });
 
 export const crear = asyncHandler(async (req, res) => {
-  await donacionService.validarDonanteExiste(req.body.donante);
-  await donacionService.validarProyectoExisteSiCorresponde(req.body.proyecto);
-  if (req.body.campania && !(await Campania.exists({ _id: req.body.campania }))) throw ApiError.badRequest("La campaña seleccionada no existe.");
-  const creada = await Donacion.create({ donante: req.body.donante, proyecto: req.body.proyecto || null, campania: req.body.campania || null, monto: req.body.monto, fecha: req.body.fecha });
+  const creada = await donacionService.crear(datosDelCuerpo(req.body));
   res.status(httpStatus.CREATED).json(creada);
 });
 
 export const actualizar = asyncHandler(async (req, res) => {
-  await donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
-  if (req.body.donante) await donacionService.validarDonanteExiste(req.body.donante);
-  if (req.body.proyecto) await donacionService.validarProyectoExisteSiCorresponde(req.body.proyecto);
-  if (req.body.campania && !(await Campania.exists({ _id: req.body.campania }))) throw ApiError.badRequest("La campaña seleccionada no existe.");
-
-  const datosPermitidos = { donante: req.body.donante, proyecto: req.body.proyecto || null, campania: req.body.campania || null, monto: req.body.monto, fecha: req.body.fecha };
-
-  const actualizada = await Donacion.findByIdAndUpdate(req.params.id, datosPermitidos, {
-    new: true,
-    runValidators: true,
-    context: "query",
-  });
+  const actualizada = await donacionService.actualizar(req.params.id, datosDelCuerpo(req.body));
   res.status(httpStatus.OK).json(actualizada);
 });
 
-
 export const eliminar = asyncHandler(async (req, res) => {
-  await donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
-  await Donacion.findByIdAndDelete(req.params.id);
+  await donacionService.eliminar(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "sumarimpacto-backend",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Backend seguro de Red SumarImpacto - IFTS N° 29",
   "main": "server.js",
   "type": "module",
@@ -9,11 +9,14 @@
     "dev": "nodemon server.js",
     "seed": "node data/seed.js",
     "create-admin": "node scripts/create-admin.js",
+    "reset-password": "node scripts/reset-password.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
     "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --coverage",
     "check": "node scripts/check.js",
-    "migrate-v1.1": "node scripts/migrate-v1.1.js"
+    "permisos": "node scripts/matriz-permisos.js",
+    "migrate-v1.1": "node scripts/migrate-v1.1.js",
+    "migrate-v1.2": "node scripts/migrate-v1.2.js"
   },
   "keywords": [
     "sumarimpacto",
@@ -37,7 +40,6 @@
     "method-override": "^3.0.0",
     "mongoose": "^9.11.1",
     "multer": "^2.0.2",
-    "nodemailer": "^10.4.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
@@ -48,7 +50,6 @@
     "jest": "^30.5.2",
     "mongodb-memory-server-core": "^10.4.3",
     "nodemon": "^3.1.14",
-    "smtp-server": "^3.21.3",
     "supertest": "^7.3.2"
   },
   "engines": {

@@ -6,10 +6,10 @@ block contenido
   .encabezado-seccion
     h1= donante.nombre
     .acciones
-      if ["administrador", "administracion"].includes(usuarioActual.rol)
+      if puede("GESTION_FINANCIERA")
         a.boton(href=`/donantes/${donante._id}/editar`) Editar
-      if usuarioActual.rol === "administrador"
-        form.form-inline(action=`/donantes/${donante._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar este donante?');")
+      if puede("BAJA_REGISTROS")
+        form.form-inline(action=`/donantes/${donante._id}?_method=DELETE` method="POST" data-confirm="¿Eliminar este donante?")
           button.boton.boton-peligro(type="submit") Eliminar
 
   .ficha
@@ -20,7 +20,7 @@ block contenido
 
   .encabezado-seccion
     h2 Historial de donaciones
-    if ["administrador", "administracion"].includes(usuarioActual.rol)
+    if puede("GESTION_FINANCIERA")
       a.boton.boton-primario(href=`/donaciones/nueva`) + Nueva donación
   if donaciones.length === 0
     p.vacio Este donante todavía no registró donaciones.
@@ -31,11 +31,9 @@ block contenido
           th Proyecto
           th Monto
           th Fecha
-          th Utilizada
       tbody
         each donacion in donaciones
           tr
             td= donacion.proyectoNombre
             td= "$" + donacion.monto.toLocaleString("es-AR")
             td= new Date(donacion.fecha).toLocaleDateString("es-AR")
-            td= donacion.utilizada ? "Sí" : "No"

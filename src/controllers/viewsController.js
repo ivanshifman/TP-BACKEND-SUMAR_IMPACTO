@@ -9,6 +9,7 @@ import donacionService from "../services/DonacionService.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import rendicionService from "../services/RendicionService.js";
+import { ROLES } from "../config/security.js";
 
 function normalizarPresupuesto(body) {
   let rubros = body.rubros;
@@ -27,37 +28,40 @@ function normalizarPresupuesto(body) {
 }
 
 export const inicio = asyncHandler(async (req, res) => {
-  const filtro = req.user?.rol === "referente_territorial" ? { organizacion: req.user.organizacion } : {};
-  filtro.activo = { $ne: false };
+  const filtro = req.user?.rol === ROLES.REFERENTE ? { organizacion: req.user.organizacion } : {};
+  const verInactivos = req.query.inactivos === "1" && res.locals.puede("GESTION_PROYECTOS");
+  if (!verInactivos) filtro.activo = { $ne: false };
   const proyectosDb = await Proyecto.find(filtro).populate("organizacion", "nombre").sort({ nombre: 1 });
+  const saldos = await proyectoService.calcularSaldos(proyectosDb.map((proyecto) => proyecto._id));
 
-  const proyectos = await Promise.all(
-    proyectosDb.map(async (proyecto) => {
-      const { totalDonado, totalGastado, totalComprometido, saldoDisponible } = await proyectoService.calcularSaldoDisponible(
-        proyecto._id
-      );
-      return {
-        ...proyecto.toObject(),
-        organizacionNombre: proyecto.organizacion ? proyecto.organizacion.nombre : "Organización no encontrada",
-        totalDonado,
-        totalGastado,
-        totalComprometido,
-        saldoDisponible,
-      };
-    })
-  );
+  const proyectos = proyectosDb.map((proyecto) => {
+    const { totalDonado, totalGastado, totalComprometido, saldoDisponible } = saldos.get(String(proyecto._id));
+    return {
+      ...proyecto.toObject(),
+      organizacionNombre: proyecto.organizacion ? proyecto.organizacion.nombre : "Organización no encontrada",
+      totalDonado,
+      totalGastado,
+      totalComprometido,
+      saldoDisponible,
+    };
+  });
 
-  res.render("index", { titulo: "SumarImpacto - Proyectos", proyectos });
+  res.render("index", { titulo: "SumarImpacto - Proyectos", proyectos, verInactivos });
 });
 
 export const detalleProyecto = asyncHandler(async (req, res) => {
   const proyecto = await proyectoService.obtenerProyectoOFallar(req.params.id);
-  if (req.user?.rol === "referente_territorial" && String(proyecto.organizacion) !== String(req.user.organizacion)) throw ApiError.forbidden();
+  proyectoService.validarAcceso(proyecto, req.user);
   await proyecto.populate("organizacion");
 
-  const donacionesDb = await Donacion.find({ proyecto: proyecto._id }).populate("donante", "nombre").sort({ fecha: 1 });
-  const gastos = await Gasto.find({ proyecto: proyecto._id }).select("-comprobante.contenido").populate("cargadoPor", "nombre").sort({ fecha: 1 });
-  const { totalDonado, totalGastado, totalComprometido, saldoDisponible } = await proyectoService.calcularSaldoDisponible(proyecto._id);
+  // Los datos de donantes y donaciones solo se consultan para los roles autorizados a verlos.
+  const puedeVerDonaciones = res.locals.puede("LECTURA_FINANCIERA");
+  const [donacionesDb, gastos, saldos] = await Promise.all([
+    puedeVerDonaciones ? Donacion.find({ proyecto: proyecto._id }).populate("donante", "nombre").sort({ fecha: 1 }) : [],
+    Gasto.find({ proyecto: proyecto._id }).select("-comprobante.contenido").populate("cargadoPor", "nombre").sort({ fecha: 1 }),
+    proyectoService.calcularSaldos([proyecto._id]),
+  ]);
+  const { totalDonado, totalGastado, totalComprometido, saldoDisponible } = saldos.get(String(proyecto._id));
 
   const donaciones = donacionesDb.map((d) => ({
     ...d.toObject(),
@@ -78,15 +82,15 @@ export const detalleProyecto = asyncHandler(async (req, res) => {
 });
 
 export const listarDonantes = asyncHandler(async (req, res) => {
-  const [donantesDb, donaciones] = await Promise.all([
+  const [donantesDb, totales] = await Promise.all([
     Donante.find().sort({ nombre: 1 }),
-    Donacion.find(),
+    Donacion.aggregate([{ $group: { _id: "$donante", cantidad: { $sum: 1 }, total: { $sum: "$monto" } } }]),
   ]);
+  const totalesPorDonante = new Map(totales.map((fila) => [String(fila._id), fila]));
 
   const donantes = donantesDb.map((donante) => {
-    const propias = donaciones.filter((d) => String(d.donante) === String(donante._id));
-    const totalDonado = propias.reduce((acc, d) => acc + d.monto, 0);
-    return { ...donante.toObject(), cantidadDonaciones: propias.length, totalDonado };
+    const fila = totalesPorDonante.get(String(donante._id));
+    return { ...donante.toObject(), cantidadDonaciones: fila?.cantidad ?? 0, totalDonado: fila?.total ?? 0 };
   });
 
   res.render("donantes/lista", { titulo: "SumarImpacto - Donantes", donantes });
@@ -113,14 +117,15 @@ export const detalleDonante = asyncHandler(async (req, res) => {
 });
 
 export const listarOrganizaciones = asyncHandler(async (req, res) => {
-  const [organizacionesDb, proyectos] = await Promise.all([
+  const [organizacionesDb, conteos] = await Promise.all([
     Organizacion.find().sort({ nombre: 1 }),
-    Proyecto.find(),
+    Proyecto.aggregate([{ $group: { _id: "$organizacion", cantidad: { $sum: 1 } } }]),
   ]);
+  const proyectosPorOrganizacion = new Map(conteos.map((fila) => [String(fila._id), fila.cantidad]));
 
   const organizaciones = organizacionesDb.map((organizacion) => ({
     ...organizacion.toObject(),
-    cantidadProyectos: proyectos.filter((p) => String(p.organizacion) === String(organizacion._id)).length,
+    cantidadProyectos: proyectosPorOrganizacion.get(String(organizacion._id)) ?? 0,
   }));
 
   res.render("organizaciones/lista", { titulo: "SumarImpacto - Organizaciones", organizaciones });
@@ -132,12 +137,8 @@ export const detalleOrganizacion = asyncHandler(async (req, res) => {
     throw ApiError.notFound(`No existe una organización con id ${req.params.id}.`);
   }
   const proyectosDb = await Proyecto.find({ organizacion: organizacion._id }).sort({ nombre: 1 });
-  const proyectos = await Promise.all(
-    proyectosDb.map(async (proyecto) => {
-      const { saldoDisponible } = await proyectoService.calcularSaldoDisponible(proyecto._id);
-      return { ...proyecto.toObject(), saldoDisponible };
-    })
-  );
+  const saldos = await proyectoService.calcularSaldos(proyectosDb.map((proyecto) => proyecto._id));
+  const proyectos = proyectosDb.map((proyecto) => ({ ...proyecto.toObject(), saldoDisponible: saldos.get(String(proyecto._id)).saldoDisponible }));
 
   res.render("organizaciones/detalle", {
     titulo: `SumarImpacto - ${organizacion.nombre}`,
@@ -148,7 +149,7 @@ export const detalleOrganizacion = asyncHandler(async (req, res) => {
 
 export const listarGastos = asyncHandler(async (req, res) => {
   const filtro = {};
-  if (req.user?.rol === "referente_territorial") { const propios = await Proyecto.find({ organizacion: req.user.organizacion }).select("_id"); filtro.proyecto = { $in: propios.map((p) => p._id) }; }
+  if (req.user?.rol === ROLES.REFERENTE) filtro.proyecto = { $in: await proyectoService.idsDeProyectosDeLaOrganizacion(req.user) };
   const gastosDb = await Gasto.find(filtro).select("-comprobante.contenido").populate("proyecto", "nombre").sort({ fecha: -1 });
   const gastos = gastosDb.map((g) => ({
     ...g.toObject(),
@@ -168,9 +169,10 @@ export const mostrarFormularioNuevoProyecto = asyncHandler(async (req, res) => {
   });
 });
 
+const datosDeProyecto = (body) => ({ nombre: body.nombre, organizacion: body.organizacion, montoObjetivo: body.montoObjetivo, ...normalizarPresupuesto(body) });
+
 export const crearProyectoDesdeFormulario = asyncHandler(async (req, res) => {
-  await proyectoService.validarOrganizacionExiste(req.body.organizacion);
-  const proyecto = await Proyecto.create({ nombre: req.body.nombre, organizacion: req.body.organizacion, montoObjetivo: req.body.montoObjetivo || undefined, ...normalizarPresupuesto(req.body) });
+  const proyecto = await proyectoService.crear(datosDeProyecto(req.body));
   res.redirect(`/proyectos/${proyecto._id}`);
 });
 
@@ -189,19 +191,17 @@ export const mostrarFormularioEditarProyecto = asyncHandler(async (req, res) => 
 });
 
 export const actualizarProyectoDesdeFormulario = asyncHandler(async (req, res) => {
-  await proyectoService.obtenerProyectoOFallar(req.params.id);
-  await proyectoService.validarOrganizacionExiste(req.body.organizacion);
-  const proyecto = await Proyecto.findById(req.params.id);
-  Object.assign(proyecto, { nombre: req.body.nombre, organizacion: req.body.organizacion, montoObjetivo: req.body.montoObjetivo || undefined, ...normalizarPresupuesto(req.body) });
-  await proyecto.save();
+  await proyectoService.actualizar(req.params.id, datosDeProyecto(req.body));
+  res.redirect(`/proyectos/${req.params.id}`);
+});
+
+export const cambiarEstadoProyectoDesdeFormulario = asyncHandler(async (req, res) => {
+  await proyectoService.cambiarActivo(req.params.id, req.body.activo === "true");
   res.redirect(`/proyectos/${req.params.id}`);
 });
 
 export const eliminarProyectoDesdeFormulario = asyncHandler(async (req, res) => {
-  await proyectoService.obtenerProyectoOFallar(req.params.id);
-  const [donaciones, gastos] = await Promise.all([Donacion.exists({ proyecto: req.params.id }), Gasto.exists({ proyecto: req.params.id })]);
-  if (donaciones || gastos) throw ApiError.conflict("No se puede eliminar un proyecto con movimientos asociados. Desactivalo o archivá su información.");
-  await Proyecto.findByIdAndDelete(req.params.id);
+  await proyectoService.eliminar(req.params.id);
   res.redirect("/");
 });
 
@@ -210,7 +210,7 @@ export const mostrarFormularioNuevoDonante = asyncHandler(async (req, res) => {
 });
 
 export const crearDonanteDesdeFormulario = asyncHandler(async (req, res) => {
-  const donante = await Donante.create({ nombre: req.body.nombre, email: req.body.email, tipo: req.body.tipo, frecuenciaNotificacion: req.body.frecuenciaNotificacion || "inmediata" });
+  const donante = await Donante.create({ nombre: req.body.nombre, email: req.body.email, tipo: req.body.tipo });
   res.redirect(`/donantes/${donante._id}`);
 });
 
@@ -221,7 +221,7 @@ export const mostrarFormularioEditarDonante = asyncHandler(async (req, res) => {
 });
 
 export const actualizarDonanteDesdeFormulario = asyncHandler(async (req, res) => {
-  const actualizado = await Donante.findByIdAndUpdate(req.params.id, { nombre: req.body.nombre, email: req.body.email, tipo: req.body.tipo, frecuenciaNotificacion: req.body.frecuenciaNotificacion || "inmediata" }, {
+  const actualizado = await Donante.findByIdAndUpdate(req.params.id, { nombre: req.body.nombre, email: req.body.email, tipo: req.body.tipo }, {
     runValidators: true,
     context: "query",
   });
@@ -278,7 +278,7 @@ export const eliminarOrganizacionDesdeFormulario = asyncHandler(async (req, res)
 export const mostrarFormularioNuevaDonacion = asyncHandler(async (req, res) => {
   const [donantes, proyectos, campanias] = await Promise.all([
     Donante.find().sort({ nombre: 1 }),
-    Proyecto.find().sort({ nombre: 1 }),
+    Proyecto.find({ activo: { $ne: false } }).sort({ nombre: 1 }),
     Campania.find({ activa: true }).sort({ nombre: 1 }),
   ]);
   res.render("donaciones/formulario", {
@@ -291,22 +291,19 @@ export const mostrarFormularioNuevaDonacion = asyncHandler(async (req, res) => {
   });
 });
 
+const datosDeDonacion = (body) => ({ donante: body.donante, proyecto: body.proyecto, campania: body.campania, monto: body.monto, fecha: body.fecha });
+const destinoDeDonacion = (donacion) => (donacion.proyecto ? `/proyectos/${donacion.proyecto}` : `/donantes/${donacion.donante}`);
+
 export const crearDonacionDesdeFormulario = asyncHandler(async (req, res) => {
-  await donacionService.validarDonanteExiste(req.body.donante);
-  await donacionService.validarProyectoExisteSiCorresponde(req.body.proyecto || null);
-  if (req.body.campania && !(await Campania.exists({ _id: req.body.campania }))) throw ApiError.badRequest("La campaña seleccionada no existe.");
-  const donacion = await Donacion.create({
-    donante: req.body.donante, monto: req.body.monto, fecha: req.body.fecha || undefined,
-    proyecto: req.body.proyecto || null, campania: req.body.campania || null,
-  });
-  res.redirect(donacion.proyecto ? `/proyectos/${donacion.proyecto}` : `/donantes/${donacion.donante}`);
+  const donacion = await donacionService.crear(datosDeDonacion(req.body));
+  res.redirect(destinoDeDonacion(donacion));
 });
 
 export const mostrarFormularioEditarDonacion = asyncHandler(async (req, res) => {
-  const donacion = await donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
+  const donacion = await donacionService.obtenerModificableOFallar(req.params.id);
   const [donantes, proyectos, campanias] = await Promise.all([
     Donante.find().sort({ nombre: 1 }),
-    Proyecto.find().sort({ nombre: 1 }),
+    Proyecto.find({ activo: { $ne: false } }).sort({ nombre: 1 }),
     Campania.find({ activa: true }).sort({ nombre: 1 }),
   ]);
   res.render("donaciones/formulario", {
@@ -320,27 +317,17 @@ export const mostrarFormularioEditarDonacion = asyncHandler(async (req, res) => 
 });
 
 export const actualizarDonacionDesdeFormulario = asyncHandler(async (req, res) => {
-  await donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
-  await donacionService.validarDonanteExiste(req.body.donante);
-  await donacionService.validarProyectoExisteSiCorresponde(req.body.proyecto || null);
-  if (req.body.campania && !(await Campania.exists({ _id: req.body.campania }))) throw ApiError.badRequest("La campaña seleccionada no existe.");
-  const actualizada = await Donacion.findByIdAndUpdate(
-    req.params.id,
-    { donante: req.body.donante, monto: req.body.monto, fecha: req.body.fecha || undefined, proyecto: req.body.proyecto || null, campania: req.body.campania || null },
-    { new: true, runValidators: true, context: "query" }
-  );
-  res.redirect(actualizada.proyecto ? `/proyectos/${actualizada.proyecto}` : `/donantes/${actualizada.donante}`);
+  const actualizada = await donacionService.actualizar(req.params.id, datosDeDonacion(req.body));
+  res.redirect(destinoDeDonacion(actualizada));
 });
 
 export const eliminarDonacionDesdeFormulario = asyncHandler(async (req, res) => {
-  const donacion = await donacionService.validarNoUtilizadaAntesDeModificar(req.params.id);
-  const redirectA = donacion.proyecto ? `/proyectos/${donacion.proyecto}` : `/donantes/${donacion.donante}`;
-  await Donacion.findByIdAndDelete(req.params.id);
-  res.redirect(redirectA);
+  const eliminada = await donacionService.eliminar(req.params.id);
+  res.redirect(destinoDeDonacion(eliminada));
 });
 
 export const mostrarFormularioNuevoGasto = asyncHandler(async (req, res) => {
-  const filtro = req.user?.rol === "referente_territorial" ? { organizacion: req.user.organizacion, activo: { $ne: false } } : { activo: { $ne: false } };
+  const filtro = req.user?.rol === ROLES.REFERENTE ? { organizacion: req.user.organizacion, activo: { $ne: false } } : { activo: { $ne: false } };
   filtro.presupuestoTotal = { $gt: 0 };
   filtro.periodoInicio = { $exists: true };
   filtro.periodoFin = { $exists: true };

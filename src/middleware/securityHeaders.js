@@ -1,58 +1,50 @@
-
 import ApiError from "../utils/ApiError.js";
 
-export function originProtection(req, res, next) {
-  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
-    return next();
-  }
+const METODOS_SEGUROS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+export const listaDeOrigenes = (valor, porDefecto) => (valor || porDefecto).split(",").map((item) => item.trim()).filter(Boolean);
+
+export function originProtection(req, _res, next) {
+  if (METODOS_SEGUROS.has(req.method)) return next();
   const origin = req.get("origin");
-
-  if (!origin) {
-    return next();
-  }
-
-  let parsedOrigin;
+  if (!origin) return next();
 
   try {
-    parsedOrigin = new URL(origin);
+    new URL(origin);
   } catch {
-    return next(
-      ApiError.forbidden("El origen de la solicitud no es válido.")
-    );
+    return next(ApiError.forbidden("El origen de la solicitud no es válido."));
   }
 
-  if (req.originalUrl.startsWith("/api")) {
-    const allowedOrigins = (
-      process.env.CORS_ORIGINS || "http://localhost:3000"
-    )
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
+  const host = req.get("host");
+  const propios = [`http://${host}`, `https://${host}`];
+  const adicionales = req.originalUrl.startsWith("/api")
+    ? listaDeOrigenes(process.env.CORS_ORIGINS, "http://localhost:3000")
+    : ["http://localhost:3000", "http://127.0.0.1:3000"];
 
-    if (!allowedOrigins.includes(origin)) {
-      return next(
-        ApiError.forbidden("El origen de la solicitud no está autorizado.")
-      );
-    }
-
-    return next();
-  }
-
-  const allowedWebOrigins = [
-    `http://${req.get("host")}`,
-    `https://${req.get("host")}`,
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-  ];
-
-  if (!allowedWebOrigins.includes(origin)) {
-    return next(
-      ApiError.forbidden("El origen de la solicitud no está autorizado.")
-    );
-  }
-
+  if (![...propios, ...adicionales].includes(origin)) return next(ApiError.forbidden("El origen de la solicitud no está autorizado."));
   return next();
 }
+
+export function sinCache(_req, res, next) {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Pragma", "no-cache");
+  next();
+}
+
+export const directivasCSP = () => ({
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'"],
+  scriptSrcAttr: ["'none'"],
+  styleSrc: ["'self'"],
+  styleSrcAttr: ["'unsafe-inline'"],
+  imgSrc: ["'self'", "data:"],
+  fontSrc: ["'self'"],
+  connectSrc: ["'self'"],
+  objectSrc: ["'none'"],
+  baseUri: ["'self'"],
+  frameAncestors: ["'none'"],
+  formAction: ["'self'"],
+  "upgrade-insecure-requests": process.env.NODE_ENV === "production" ? [] : null,
+});
 
 export default originProtection;

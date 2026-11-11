@@ -37,3 +37,52 @@ Mongoose crea los índices declarados al inicializar los modelos según la confi
 - Confirmar asociación de cada referente con su organización.
 - Confirmar que los gastos antiguos se muestran como históricos.
 - Crear una rendición de prueba con un comprobante real y revisar los estados RF-02.
+
+---
+
+# Migración de 1.1 a 1.2
+
+## Antes de comenzar
+
+1. Hacé un backup de MongoDB.
+2. Ejecutá `npm install` (o `npm ci`): se retiraron las dependencias `nodemailer` y `smtp-server`.
+3. Eliminá del `.env` las variables que ya no se usan: `SMTP_*`, `APP_BASE_URL` y `COMPROBANTE_LINK_SECRET`.
+   Si la clave SMTP era real, **revocala** en el proveedor.
+
+## Datos
+
+```bash
+npm run migrate-v1.2
+```
+
+El script es idempotente y elimina lo que dejó de existir:
+
+- el campo `utilizada` de las donaciones (nunca se activaba);
+- el campo `frecuenciaNotificacion` de los donantes;
+- la colección `notificacions` del módulo de correo, si existe.
+
+No modifica contraseñas, roles, montos ni fechas. Si no lo ejecutás, la aplicación funciona igual: Mongoose
+ignora los campos que ya no están en el esquema.
+
+## Cambios que conviene conocer
+
+- **Cuentas nuevas y restablecidas:** quedan con cambio de contraseña pendiente. Las cuentas **existentes** no
+  se ven afectadas y conservan su contraseña.
+- **Emails:** desde esta versión se guardan en minúsculas **sin alterar los puntos** de las cuentas Gmail. Las
+  cuentas Gmail con puntos creadas con una versión anterior pudieron haberse guardado sin esos puntos; si alguien
+  no puede ingresar con su dirección completa, probá sin los puntos o pedile al administrador que corrija el
+  email.
+- **Proyectos:** aparece el estado activo/inactivo. Los proyectos existentes quedan activos.
+- **Donaciones:** solo se aceptan para proyectos activos y campañas vigentes que abarquen la fecha.
+- **Reporte de campaña:** ahora incluye las donaciones hechas el último día de la campaña; las cifras de
+  campañas ya finalizadas pueden aumentar respecto de lo informado antes.
+- **Bitácora:** se crea la colección `auditorias` al primer uso; no requiere migración.
+- **CORS:** `CORS_ORIGINS` ya no debe incluir el dominio de la propia aplicación.
+
+## Verificación posterior
+
+- Ingresar con una cuenta existente y comprobar que no se le exige cambiar la contraseña.
+- Crear un usuario de prueba y comprobar que debe cambiar la contraseña al ingresar.
+- Desactivar y reactivar un proyecto de prueba.
+- Consultar `/admin/auditoria` y comprobar que aparecen las acciones recientes.
+- Comprobar que el menú de cada rol muestra solo lo que puede usar.

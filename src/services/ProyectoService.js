@@ -4,6 +4,11 @@ import Organizacion from "../models/Organizacion.js";
 import Donacion from "../models/Donacion.js";
 import Gasto from "../models/Gasto.js";
 import ApiError from "../utils/ApiError.js";
+import { ROLES } from "../config/security.js";
+import { validarCambioDePresupuesto } from "../utils/reglasProyecto.js";
+
+const aObjectId = (id) => new mongoose.Types.ObjectId(String(id));
+const esReferente = (usuario) => usuario?.rol === ROLES.REFERENTE;
 
 class ProyectoService {
   validarFormatoId(id, etiqueta = "id") {
@@ -30,55 +35,129 @@ class ProyectoService {
     return organizacion;
   }
 
-  async totalDonado(proyectoId) {
-    const resultado = await Donacion.aggregate([
-      { $match: { proyecto: new mongoose.Types.ObjectId(proyectoId) } },
-      { $group: { _id: null, total: { $sum: "$monto" } } },
-    ]);
-    return resultado.length ? resultado[0].total : 0;
+  // ── Alcance por organización (referente territorial) ───────────────────────────────────
+  validarAcceso(proyecto, usuario) {
+    if (esReferente(usuario) && String(proyecto.organizacion) !== String(usuario.organizacion)) {
+      throw ApiError.forbidden();
+    }
   }
 
-  async totalGastado(proyectoId) {
-    const resultado = await Gasto.aggregate([
-      { $match: { proyecto: new mongoose.Types.ObjectId(proyectoId), $or: [{ estado: "aprobado" }, { estado: { $exists: false } }] } },
-      { $group: { _id: null, total: { $sum: "$monto" } } },
-    ]);
-    return resultado.length ? resultado[0].total : 0;
+  async idsDeProyectosDeLaOrganizacion(usuario) {
+    const proyectos = await Proyecto.find({ organizacion: usuario.organizacion }).select("_id");
+    return proyectos.map((proyecto) => proyecto._id);
   }
 
-  async totalComprometido(proyectoId) {
-    const resultado = await Gasto.aggregate([
-      { $match: { proyecto: new mongoose.Types.ObjectId(proyectoId), estado: { $ne: "observado" } } },
-      { $group: { _id: null, total: { $sum: "$monto" } } },
+  // ── Saldos ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Calcula donado, gastado aprobado, comprometido y saldo de varios proyectos con tres
+   * consultas agrupadas, en lugar de tres por proyecto.
+   * @returns {Promise<Map<string, object>>} Resultado por id de proyecto.
+   */
+  async calcularSaldos(proyectoIds) {
+    const ids = proyectoIds.map(aObjectId);
+    const agrupar = (Modelo, filtro) => Modelo.aggregate([
+      { $match: { proyecto: { $in: ids }, ...filtro } },
+      { $group: { _id: "$proyecto", total: { $sum: "$monto" } } },
     ]);
-    return resultado.length ? resultado[0].total : 0;
+    const [donado, gastado, comprometido] = await Promise.all([
+      agrupar(Donacion, {}),
+      agrupar(Gasto, { $or: [{ estado: "aprobado" }, { estado: { $exists: false } }] }),
+      agrupar(Gasto, { estado: { $ne: "observado" } }),
+    ]);
+    const totalPorProyecto = (filas) => new Map(filas.map((fila) => [String(fila._id), fila.total]));
+    const donadoPor = totalPorProyecto(donado);
+    const gastadoPor = totalPorProyecto(gastado);
+    const comprometidoPor = totalPorProyecto(comprometido);
+
+    return new Map(ids.map((id) => {
+      const clave = String(id);
+      const totalDonado = donadoPor.get(clave) ?? 0;
+      const totalComprometido = comprometidoPor.get(clave) ?? 0;
+      return [clave, {
+        proyectoId: clave,
+        totalDonado,
+        totalGastado: gastadoPor.get(clave) ?? 0,
+        totalComprometido,
+        saldoDisponible: totalDonado - totalComprometido,
+      }];
+    }));
   }
 
   async calcularSaldoDisponible(proyectoId) {
     await this.obtenerProyectoOFallar(proyectoId);
-    const [totalDonado, totalGastado, totalComprometido] = await Promise.all([
-      this.totalDonado(proyectoId),
-      this.totalGastado(proyectoId),
-      this.totalComprometido(proyectoId),
-    ]);
+    const saldos = await this.calcularSaldos([proyectoId]);
+    return saldos.get(String(proyectoId));
+  }
+
+  // ── Altas, modificaciones y bajas ──────────────────────────────────────────────────────
+
+  async crear(datos) {
+    await this.validarOrganizacionExiste(datos.organizacion);
+    return Proyecto.create(this.#camposEditables(datos));
+  }
+
+  async actualizar(proyectoId, datos) {
+    const proyecto = await this.obtenerProyectoOFallar(proyectoId);
+    await this.validarOrganizacionExiste(datos.organizacion);
+    await this.#validarCambioDePresupuesto(proyecto, datos);
+    proyecto.set(this.#camposEditables(datos));
+    await proyecto.save();
+    return proyecto;
+  }
+
+  async eliminar(proyectoId) {
+    await this.obtenerProyectoOFallar(proyectoId);
+    const [donaciones, gastos] = await Promise.all([Donacion.exists({ proyecto: proyectoId }), Gasto.exists({ proyecto: proyectoId })]);
+    if (donaciones || gastos) {
+      throw ApiError.conflict("No se puede eliminar un proyecto con movimientos asociados. Desactivalo para ocultarlo y conservar su historial.");
+    }
+    await Proyecto.findByIdAndDelete(proyectoId);
+  }
+
+  /** Un proyecto inactivo deja de recibir donaciones y rendiciones, pero conserva su historial. */
+  async cambiarActivo(proyectoId, activo) {
+    const proyecto = await this.obtenerProyectoOFallar(proyectoId);
+    proyecto.activo = Boolean(activo);
+    await proyecto.save();
+    return proyecto;
+  }
+
+  #camposEditables(datos) {
     return {
-      proyectoId: String(proyectoId),
-      totalDonado,
-      totalGastado,
-      totalComprometido,
-      saldoDisponible: totalDonado - totalComprometido,
+      nombre: datos.nombre,
+      organizacion: datos.organizacion,
+      montoObjetivo: datos.montoObjetivo || undefined,
+      presupuestoTotal: datos.presupuestoTotal,
+      periodoInicio: datos.periodoInicio,
+      periodoFin: datos.periodoFin,
+      rubros: datos.rubros,
     };
   }
 
-  async validarGastoContraSaldo(proyectoId, montoGasto) {
-    const { saldoDisponible } = await this.calcularSaldoDisponible(proyectoId);
-    if (montoGasto > saldoDisponible) {
-      throw ApiError.conflict(
-        `El gasto ($${montoGasto}) supera el saldo disponible del proyecto ($${saldoDisponible}).`
-      );
-    }
+  async #validarCambioDePresupuesto(proyecto, datos) {
+    const [comprometidoPorRubro, totalComprometido] = await Promise.all([
+      this.#comprometidoPorRubro(proyecto._id),
+      this.calcularSaldos([proyecto._id]).then((saldos) => saldos.get(String(proyecto._id)).totalComprometido),
+    ]);
+    const errores = validarCambioDePresupuesto({
+      rubrosActuales: proyecto.rubros,
+      rubrosNuevos: datos.rubros ?? [],
+      presupuestoActual: proyecto.presupuestoTotal,
+      presupuestoNuevo: Number(datos.presupuestoTotal),
+      totalComprometido,
+      comprometidoPorRubro,
+    });
+    if (errores.length) throw ApiError.conflict(errores.join(" "));
   }
 
+  async #comprometidoPorRubro(proyectoId) {
+    const filas = await Gasto.aggregate([
+      { $match: { proyecto: aObjectId(proyectoId), estado: { $ne: "observado" } } },
+      { $group: { _id: { $toLower: "$rubro" }, total: { $sum: "$monto" } } },
+    ]);
+    return new Map(filas.map((fila) => [String(fila._id).trim(), fila.total]));
+  }
 }
 
 export const proyectoService = new ProyectoService();

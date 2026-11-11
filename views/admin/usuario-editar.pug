@@ -1,0 +1,37 @@
+extends ../layout
+
+block contenido
+  a.volver(href="/admin/usuarios") ← Volver a usuarios
+  h1 Editar usuario
+  p.ayuda #{usuario.email} — Un cambio de rol u organización cierra las sesiones abiertas de esta persona.
+
+  form.formulario(action=`/admin/usuarios/${usuario._id}?_method=PUT` method="POST")
+    h2 Datos y permisos
+    .campo
+      label(for="nombre") Nombre completo
+      input#nombre(type="text" name="nombre" value=usuario.nombre required minlength="2" maxlength="100")
+    .campo
+      label(for="rol") Rol
+      select#rol(name="rol" required)
+        each label, key in roles
+          option(value=key selected=usuario.rol === key)= label
+    .campo
+      label(for="organizacion") Organización (obligatoria para referentes)
+      select#organizacion(name="organizacion")
+        option(value="") Sin organización
+        each organizacion in organizaciones
+          option(value=organizacion._id selected=usuario.organizacion && String(usuario.organizacion) === String(organizacion._id))= organizacion.nombre
+    button.boton.boton-primario(type="submit") Guardar cambios
+
+  if String(usuario._id) !== String(usuarioActual._id)
+    form.formulario(action=`/admin/usuarios/${usuario._id}/password` method="POST" data-confirm="¿Restablecer la contraseña de este usuario? Deberá cambiarla al ingresar.")
+      h2 Restablecer contraseña
+      p.ayuda Definí una contraseña temporal y comunicásela a la persona por un canal seguro. Al ingresar, el sistema le exigirá elegir una propia.
+      .campo
+        label(for="passwordNueva") Contraseña temporal
+        input#passwordNueva(type="password" name="passwordNueva" required minlength="12" maxlength="72" autocomplete="new-password")
+        small Entre 12 y 72 caracteres, con mayúscula, minúscula, número y símbolo.
+      .campo
+        label(for="confirmarPassword") Repetir contraseña temporal
+        input#confirmarPassword(type="password" name="confirmarPassword" required minlength="12" maxlength="72" autocomplete="new-password")
+      button.boton.boton-peligro(type="submit") Restablecer contraseña

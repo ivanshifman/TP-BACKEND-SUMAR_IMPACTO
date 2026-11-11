@@ -3,9 +3,10 @@ import proyectoService from "./ProyectoService.js";
 import ApiError from "../utils/ApiError.js";
 import { decidirCircuitoRendicion } from "../utils/reglasRendicion.js";
 import { UMBRAL_AUTO_APROBACION_PCT, UMBRAL_MESA_COORDINADORA_PCT, TOPE_MENSUAL_AUTO_PCT } from "../config/rendicion.js";
-import notificacionService from "./NotificacionService.js";
+import { LIMITES } from "../config/validacion.js";
+import { diaUTC, esFechaFutura } from "../utils/fechas.js";
+import { conBloqueo } from "../utils/mutex.js";
 
-const diaUTC = (fecha) => Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate());
 const dentroDelPeriodo = (fecha, proyecto) => diaUTC(fecha) >= diaUTC(proyecto.periodoInicio) && diaUTC(fecha) <= diaUTC(proyecto.periodoFin);
 const rubroAprobado = (rubro, proyecto) => proyecto.rubros.some((item) => item.nombre.toLowerCase() === String(rubro).trim().toLowerCase());
 function validarFirmaArchivo(archivo) {
@@ -32,6 +33,8 @@ class RendicionService {
     if (!datos.rubro || !String(datos.rubro).trim()) throw ApiError.badRequest("Seleccioná un rubro para la rendición.");
     if (!datos.fecha || Number.isNaN(new Date(datos.fecha).getTime())) throw ApiError.badRequest("La fecha del comprobante no es válida.");
     if (!Number.isFinite(Number(datos.monto)) || Number(datos.monto) <= 0) throw ApiError.badRequest("El monto debe ser un número mayor a cero.");
+    if (Number(datos.monto) > LIMITES.MONTO_MAXIMO) throw ApiError.badRequest(`El monto no puede superar ${LIMITES.MONTO_MAXIMO.toLocaleString("es-AR")}.`);
+    if (esFechaFutura(datos.fecha)) throw ApiError.badRequest("La fecha del comprobante no puede ser futura.");
 
     const monto = Math.round(Number(datos.monto) * 100) / 100;
     const fecha = new Date(datos.fecha);
@@ -39,6 +42,12 @@ class RendicionService {
     const sumaRubros = proyecto.rubros.reduce((total, rubro) => total + Number(rubro.montoAprobado || 0), 0);
     if (sumaRubros > proyecto.presupuestoTotal) throw ApiError.conflict("La suma de los rubros supera el presupuesto total del proyecto.");
     if (!datos.descripcion || String(datos.descripcion).trim().length < 3 || String(datos.descripcion).length > 500) throw ApiError.badRequest("La descripción debe tener entre 3 y 500 caracteres.");
+    // El saldo se verifica y el gasto se crea dentro del mismo bloqueo por proyecto: dos cargas
+    // simultáneas no pueden calcular el saldo sobre el mismo estado y superarlo.
+    return conBloqueo(String(proyecto._id), () => this.#crearConSaldoVerificado({ proyecto, datos, monto, fecha, archivo, usuario }));
+  }
+
+  async #crearConSaldoVerificado({ proyecto, datos, monto, fecha, archivo, usuario }) {
     const saldo = await proyectoService.calcularSaldoDisponible(proyecto._id);
     if (monto > saldo.saldoDisponible) throw ApiError.conflict(`El gasto supera el saldo disponible ($${saldo.saldoDisponible.toFixed(2)}).`);
 
@@ -65,11 +74,14 @@ class RendicionService {
       cargadoPor: usuario._id, requiereMesa, aprobadoAutomaticamente,
       ...(aprobadoAutomaticamente ? { fechaAprobacion: new Date() } : {}),
     });
-    if (gasto.estado === "aprobado") void notificacionService.encolarPorRendicion(gasto).catch((error) => console.error("No se pudo encolar la notificación:", error.message));
     return gasto;
   }
 
-  async revisar(gastoId, usuario, accion, observacion = "") {
+  revisar(gastoId, usuario, accion, observacion = "") {
+    return conBloqueo(`rendicion:${gastoId}`, () => this.#revisar(gastoId, usuario, accion, observacion));
+  }
+
+  async #revisar(gastoId, usuario, accion, observacion) {
     const gasto = await Gasto.findById(gastoId);
     if (!gasto) throw ApiError.notFound("No existe la rendición solicitada.");
     if (String(gasto.cargadoPor) === String(usuario._id)) throw ApiError.forbidden("No podés aprobar ni observar una rendición que cargaste.");
@@ -98,7 +110,6 @@ class RendicionService {
     } else throw ApiError.forbidden("Solo Auditoría o Mesa Coordinadora pueden resolver rendiciones.");
 
     await gasto.save();
-    if (gasto.estado === "aprobado") void notificacionService.encolarPorRendicion(gasto).catch((error) => console.error("No se pudo encolar la notificación:", error.message));
     return gasto;
   }
 }

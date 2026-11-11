@@ -10,6 +10,7 @@ const usuarioSchema = new Schema({
   rol: { type: String, required: true, enum: ROLE_VALUES },
   organizacion: { type: Schema.Types.ObjectId, ref: "Organizacion", default: null },
   activo: { type: Boolean, default: true },
+  debeCambiarPassword: { type: Boolean, default: false },
   refreshTokenHash: { type: String, select: false, default: null },
   ultimoAcceso: { type: Date, default: null },
 }, { timestamps: true, toJSON: { transform: (_doc, ret) => { delete ret.password; delete ret.refreshTokenHash; delete ret.__v; return ret; } } });

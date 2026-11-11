@@ -2,7 +2,8 @@ extends ../layout
 block contenido
   .encabezado-seccion
     h1 Campañas
-    a.boton.boton-primario(href="/admin/campanias/nueva") + Nueva campaña
+    if puede("GESTION_CAMPANIAS")
+      a.boton.boton-primario(href="/admin/campanias/nueva") + Nueva campaña
   if campanias.length === 0
     p.vacio No hay campañas cargadas.
   else
@@ -23,7 +24,7 @@ block contenido
             td= item.activa ? "Activa" : "Finalizada"
             td
               a.boton(href=`/admin/campanias/${item._id}/reporte`) Ver reporte
-              if ["administrador", "mesa_coordinadora"].includes(usuarioActual.rol)
+              if puede("GESTION_CAMPANIAS")
                 a.boton(href=`/admin/campanias/${item._id}/editar`) Editar
                 form.form-inline(action=`/admin/campanias/${item._id}/estado` method="POST")
                   button.boton.boton-chico(type="submit")= item.activa ? "Desactivar" : "Activar"

@@ -1,0 +1,57 @@
+extends ../layout
+
+block contenido
+  h1 Bitácora de auditoría
+  p.ayuda Registro de escrituras, accesos a comprobantes y reportes, e intentos de ingreso. No incluye contraseñas ni el contenido de los formularios.
+
+  form.filtros(method="GET" action="/admin/auditoria")
+    .campo
+      label(for="metodo") Método
+      select#metodo(name="metodo")
+        option(value="") Todos
+        each m in ["POST", "PUT", "PATCH", "DELETE", "GET"]
+          option(value=m selected=filtros.metodo === m)= m
+    .campo
+      label(for="resultado") Resultado
+      select#resultado(name="resultado")
+        option(value="") Todos
+        each r in ["ok", "rechazado", "error"]
+          option(value=r selected=filtros.resultado === r)= r
+    .campo
+      label(for="email") Email del usuario
+      input#email(type="text" name="email" value=filtros.email maxlength="254")
+    button.boton(type="submit") Filtrar
+
+  - const enlace = (n) => { const p = new URLSearchParams(); if (filtros.metodo) p.set("metodo", filtros.metodo); if (filtros.resultado) p.set("resultado", filtros.resultado); if (filtros.email) p.set("email", filtros.email); p.set("pagina", n); return "/admin/auditoria?" + p.toString(); }
+
+  if datos.length === 0
+    p.vacio No hay registros para los filtros seleccionados.
+  else
+    table.tabla
+      thead
+        tr
+          th Fecha
+          th Usuario
+          th Rol
+          th Método
+          th Ruta
+          th Estado
+          th Resultado
+          th IP
+      tbody
+        each item in datos
+          tr
+            td= new Date(item.fecha).toLocaleString("es-AR")
+            td= item.email || "—"
+            td= item.rol || "—"
+            td= item.metodo
+            td= item.ruta
+            td= item.estado
+            td= item.resultado
+            td= item.ip || "—"
+    .paginacion
+      if pagina > 1
+        a.boton.boton-chico(href=enlace(pagina - 1)) ← Anterior
+      span Página #{pagina} de #{paginas} (#{total} registros)
+      if pagina < paginas
+        a.boton.boton-chico(href=enlace(pagina + 1)) Siguiente →

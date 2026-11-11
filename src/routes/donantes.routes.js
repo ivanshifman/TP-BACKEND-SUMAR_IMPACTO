@@ -1,14 +1,20 @@
 import express from "express";
 import { body, param, query } from "express-validator";
 import * as c from "../controllers/donantesController.js";
-import { permitirRoles } from "../middleware/auth.js";
+import { permitirGrupo } from "../middleware/auth.js";
 import { validar } from "../middleware/validate.js";
-import { ROLES } from "../config/security.js";
+import { validarEmail } from "../utils/validadores.js";
+
 const r = express.Router();
-r.get("/", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), [query("tipo").optional().isIn(["individual", "corporativo"]), validar], c.listar);
-r.get("/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION, ROLES.AUDITORIA, ROLES.MESA), [param("id").isMongoId(), validar], c.obtenerPorId);
-const fields = [body("nombre").trim().isLength({ min: 2, max: 120 }), body("email").isEmail().normalizeEmail(), body("tipo").isIn(["individual", "corporativo"]), body("frecuenciaNotificacion").optional().isIn(["inmediata", "semanal", "mensual"]), validar];
-r.post("/", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), fields, c.crear);
-r.put("/:id", permitirRoles(ROLES.ADMIN, ROLES.ADMINISTRACION), [param("id").isMongoId(), ...fields], c.actualizar);
-r.delete("/:id", permitirRoles(ROLES.ADMIN), [param("id").isMongoId(), validar], c.eliminar);
+const idValido = [param("id").isMongoId(), validar];
+
+r.get("/", permitirGrupo("LECTURA_FINANCIERA"), [query("tipo").optional().isIn(["individual", "corporativo"]), validar], c.listar);
+r.get("/:id", permitirGrupo("LECTURA_FINANCIERA"), idValido, c.obtenerPorId);
+
+const campos = [body("nombre").trim().isLength({ min: 2, max: 120 }), validarEmail(), body("tipo").isIn(["individual", "corporativo"]), validar];
+
+r.post("/", permitirGrupo("GESTION_FINANCIERA"), campos, c.crear);
+r.put("/:id", permitirGrupo("GESTION_FINANCIERA"), [param("id").isMongoId(), ...campos], c.actualizar);
+r.delete("/:id", permitirGrupo("BAJA_REGISTROS"), idValido, c.eliminar);
+
 export default r;

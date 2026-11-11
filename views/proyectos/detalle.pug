@@ -6,11 +6,17 @@ block contenido
   .encabezado-seccion
     h1= proyecto.nombre
     .acciones
-      if ["administrador", "mesa_coordinadora", "trabajo_social"].includes(usuarioActual.rol)
+      if puede("GESTION_PROYECTOS")
         a.boton(href=`/proyectos/${proyecto._id}/editar`) Editar
-      if ["administrador", "mesa_coordinadora"].includes(usuarioActual.rol)
-        form.form-inline(action=`/proyectos/${proyecto._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar este proyecto?');")
+        form.form-inline(action=`/proyectos/${proyecto._id}/estado` method="POST")
+          input(type="hidden" name="activo" value=proyecto.activo === false ? "true" : "false")
+          button.boton(type="submit")= proyecto.activo === false ? "Activar" : "Desactivar"
+      if puede("BAJA_PROYECTOS")
+        form.form-inline(action=`/proyectos/${proyecto._id}?_method=DELETE` method="POST" data-confirm="¿Eliminar este proyecto?")
           button.boton.boton-peligro(type="submit") Eliminar
+
+  if proyecto.activo === false
+    p.mensaje-error(role="status") Este proyecto está inactivo: no recibe donaciones ni rendiciones, pero conserva su historial.
 
   p.organizacion Organización responsable: #{organizacion ? organizacion.nombre : "No encontrada"}
 
@@ -28,10 +34,10 @@ block contenido
       span.etiqueta Saldo disponible
       span.valor= "$" + saldoDisponible.toLocaleString("es-AR")
 
-  if ["administrador", "administracion", "auditoria", "mesa_coordinadora"].includes(usuarioActual.rol)
+  if puede("LECTURA_FINANCIERA")
     .encabezado-seccion
       h2 Donaciones recibidas
-      if ["administrador", "administracion"].includes(usuarioActual.rol)
+      if puede("GESTION_FINANCIERA")
         a.boton.boton-primario(href=`/donaciones/nueva?proyectoId=${proyecto._id}`) + Nueva donación
     if donaciones.length === 0
       p.vacio Este proyecto todavía no recibió donaciones.
@@ -50,15 +56,16 @@ block contenido
               td= "$" + donacion.monto.toLocaleString("es-AR")
               td= new Date(donacion.fecha).toLocaleDateString("es-AR")
               td
-                if gastos.length === 0 && ["administrador", "administracion"].includes(usuarioActual.rol)
+                if gastos.length === 0 && puede("GESTION_FINANCIERA")
                   a.boton.boton-chico(href=`/donaciones/${donacion._id}/editar`) Editar
-                  form.form-inline(action=`/donaciones/${donacion._id}?_method=DELETE` method="POST" onsubmit="return confirm('¿Eliminar esta donación?');")
+                if gastos.length === 0 && puede("BAJA_REGISTROS")
+                  form.form-inline(action=`/donaciones/${donacion._id}?_method=DELETE` method="POST" data-confirm="¿Eliminar esta donación?")
                     button.boton.boton-chico.boton-peligro(type="submit") Eliminar
   
   if usuarioActual.rol !== "trabajo_social"
     .encabezado-seccion
       h2 Gastos registrados
-      if usuarioActual.rol === "referente_territorial"
+      if puede("CARGA_RENDICIONES")
         a.boton.boton-primario(href=`/gastos/nuevo?proyectoId=${proyecto._id}`) + Nuevo gasto
     if gastos.length === 0
       p.vacio Este proyecto todavía no registró gastos.

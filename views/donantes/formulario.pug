@@ -24,13 +24,6 @@ block contenido
         option(value="individual" selected=donante.tipo === "individual") Individual
         option(value="corporativo" selected=donante.tipo === "corporativo") Corporativo
 
-    .campo
-      label(for="frecuenciaNotificacion") Frecuencia de notificaciones
-      select#frecuenciaNotificacion(name="frecuenciaNotificacion")
-        option(value="inmediata" selected=!donante.frecuenciaNotificacion || donante.frecuenciaNotificacion === "inmediata") Inmediata
-        option(value="semanal" selected=donante.frecuenciaNotificacion === "semanal") Resumen semanal
-        option(value="mensual" selected=donante.frecuenciaNotificacion === "mensual") Resumen mensual
-
     .acciones-formulario
       button.boton.boton-primario(type="submit")= modo === "crear" ? "Crear donante" : "Guardar cambios"
       a.boton(href=modo === "crear" ? "/donantes" : `/donantes/${donante._id}`) Cancelar

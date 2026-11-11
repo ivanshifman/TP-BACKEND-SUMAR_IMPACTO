@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
+
 const { Schema, model } = mongoose;
+
 const comprobanteSchema = new Schema({ nombre: { type: String, required: true }, mimeType: { type: String, required: true }, tamanio: { type: Number, required: true }, contenido: { type: Buffer, required: true, select: false } }, { _id: false });
 const gastoSchema = new Schema({
   proyecto: { type: Schema.Types.ObjectId, ref: "Proyecto", required: true, index: true },
@@ -19,7 +21,8 @@ const gastoSchema = new Schema({
   fechaAprobacion: { type: Date, default: null },
   requiereMesa: { type: Boolean, default: false },
   aprobadoAutomaticamente: { type: Boolean, default: false },
-}, { timestamps: true, toJSON: { transform: (_doc, ret) => { if (ret.comprobante) delete ret.comprobante.contenido; delete ret.__v; return ret; } } });
+}, { timestamps: true, optimisticConcurrency: true, toJSON: { transform: (_doc, ret) => { if (ret.comprobante) delete ret.comprobante.contenido; delete ret.__v; return ret; } } });
 gastoSchema.index({ proyecto: 1, fecha: -1 });
+
 export const Gasto = model("Gasto", gastoSchema);
 export default Gasto;

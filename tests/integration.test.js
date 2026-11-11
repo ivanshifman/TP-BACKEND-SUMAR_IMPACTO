@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 import { MongoMemoryServer } from "mongodb-memory-server-core";
-import { SMTPServer } from "smtp-server";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import request from "supertest";
@@ -10,16 +9,8 @@ process.env.JWT_ACCESS_SECRET = "integration-access-secret-0123456789-ABCDEFGHIJ
 process.env.JWT_REFRESH_SECRET = "integration-refresh-secret-9876543210-zyxwvutsrqponmlkjihgfedcba";
 process.env.JWT_ISSUER = "sumarimpacto-integration-test";
 process.env.JWT_AUDIENCE = "sumarimpacto-integration-client";
-process.env.COMPROBANTE_LINK_SECRET = "integration-receipt-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-process.env.APP_BASE_URL = "http://localhost:3000";
-process.env.SMTP_HOST = "127.0.0.1";
-process.env.SMTP_USER = "integration";
-process.env.SMTP_PASSWORD = "integration-password";
-process.env.SMTP_FROM = "notifications@sumarimpacto.test";
-process.env.SMTP_SECURE = "false";
 
 let app;
-let notificacionService;
 let Usuario;
 let Organizacion;
 let Proyecto;
@@ -27,13 +18,7 @@ let Donante;
 let Donacion;
 let Campania;
 let Gasto;
-let Notificacion;
-let createReceiptToken;
 let mongo;
-let smtp;
-let smtpPort;
-let rejectEmail = false;
-const receivedEmails = [];
 
 const roles = {
   admin: "administrador",
@@ -105,35 +90,10 @@ async function seedGasto(options = {}) {
   });
 }
 
-describe("API integration with isolated MongoDB and local SMTP", () => {
+describe("API integration with isolated MongoDB", () => {
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
     process.env.MONGODB_URI = mongo.getUri();
-    smtp = new SMTPServer({
-      authOptional: true,
-      hideSTARTTLS: true,
-      onAuth(auth, _session, callback) {
-        callback(null, { user: auth.username || "integration" });
-      },
-      onData(stream, _session, callback) {
-        let message = "";
-        stream.on("data", (chunk) => { message += chunk.toString(); });
-        stream.on("end", () => {
-          if (rejectEmail) callback(new Error("550 Simulated integration SMTP failure"));
-          else {
-            receivedEmails.push(message);
-            callback(null, "Message accepted");
-          }
-        });
-      },
-    });
-    await new Promise((resolve, reject) => {
-      smtp.once("error", reject);
-      smtp.listen(0, "127.0.0.1", resolve);
-    });
-    smtpPort = smtp.server.address().port;
-    process.env.SMTP_PORT = String(smtpPort);
-
     await mongoose.connect(process.env.MONGODB_URI);
     ({ default: Usuario } = await import("../src/models/Usuario.js"));
     ({ default: Organizacion } = await import("../src/models/Organizacion.js"));
@@ -142,9 +102,6 @@ describe("API integration with isolated MongoDB and local SMTP", () => {
     ({ default: Donacion } = await import("../src/models/Donacion.js"));
     ({ default: Campania } = await import("../src/models/Campania.js"));
     ({ default: Gasto } = await import("../src/models/Gasto.js"));
-    ({ default: Notificacion } = await import("../src/models/Notificacion.js"));
-    ({ default: notificacionService } = await import("../src/services/NotificacionService.js"));
-    ({ crearTokenComprobante: createReceiptToken } = await import("../src/utils/publicReceiptToken.js"));
     ({ default: app } = await import("../src/app.js"));
 
     users = {};
@@ -155,7 +112,6 @@ describe("API integration with isolated MongoDB and local SMTP", () => {
 
   beforeEach(async () => {
     await Promise.all([
-      Notificacion.deleteMany({}),
       Gasto.deleteMany({}),
       Donacion.deleteMany({}),
       Donante.deleteMany({}),
@@ -164,8 +120,6 @@ describe("API integration with isolated MongoDB and local SMTP", () => {
       Organizacion.deleteMany({}),
     ]);
     await Usuario.updateMany({}, { $set: { refreshTokenHash: null, activo: true } });
-    receivedEmails.length = 0;
-    rejectEmail = false;
     organizationA = await Organizacion.create({ nombre: "Organización Norte", descripcion: "Organización de prueba del norte" });
     organizationB = await Organizacion.create({ nombre: "Organización Sur", descripcion: "Organización de prueba del sur" });
     projectA = await Proyecto.create({
@@ -188,7 +142,6 @@ describe("API integration with isolated MongoDB and local SMTP", () => {
       nombre: "Donante de financiación",
       email: "funding@integration.test",
       tipo: "individual",
-      frecuenciaNotificacion: "mensual",
     });
     await Donacion.create([
       { donante: fundingDonor._id, proyecto: projectA._id, monto: 10000 },
@@ -199,8 +152,8 @@ describe("API integration with isolated MongoDB and local SMTP", () => {
   });
 
   afterAll(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 150)); // deja terminar las escrituras pendientes de la bitácora
     if (mongoose.connection.readyState) await mongoose.disconnect();
-    if (smtp) await new Promise((resolve) => smtp.close(resolve));
     if (mongo) await mongo.stop();
   });
 
@@ -481,22 +434,9 @@ describe("API integration with isolated MongoDB and local SMTP", () => {
       expect(duplicate.status).toBe(409);
     });
 
-    test("serves signed receipt links only for approved persistent expenses", async () => {
-      const approved = await seedGasto({ state: "aprobado", amount: 100, autoApproved: true });
-      const pending = await seedGasto({ state: "en_revision", amount: 600 });
-      const approvedLink = await request(app).get(`/comprobantes/public/${createReceiptToken(approved._id)}`);
-      expect(approvedLink.status).toBe(200);
-      expect(approvedLink.headers["content-type"]).toMatch(/application\/pdf/);
-      expect(approvedLink.body.toString()).toContain("%PDF-1.4");
-
-      const pendingLink = await request(app).get(`/comprobantes/public/${createReceiptToken(pending._id)}`);
-      expect(pendingLink.status).toBe(404);
-      const invalid = await request(app).get("/comprobantes/public/not-a-valid-token");
-      expect(invalid.status).toBe(401);
-    });
   });
 
-  describe("campaign reports and SMTP outbox", () => {
+  describe("campaign reports", () => {
     test("aggregates campaign donations, renders the report and exports a PDF", async () => {
       const now = new Date();
       const campaign = await Campania.create({
@@ -529,61 +469,6 @@ describe("API integration with isolated MongoDB and local SMTP", () => {
       expect(pdf.status).toBe(200);
       expect(pdf.headers["content-type"]).toMatch(/application\/pdf/);
       expect(pdf.body.subarray(0, 4).toString()).toBe("%PDF");
-    });
-
-    test("delivers pending outbox notifications through a local SMTP server", async () => {
-      const donor = await Donante.create({ nombre: "Donante SMTP", email: "smtp@integration.test", tipo: "individual" });
-      await Donacion.create({ donante: donor._id, proyecto: projectA._id, monto: 1000 });
-      const gasto = await seedGasto({ amount: 600 });
-      const auditorToken = await bearerFor("auditoria");
-      const approved = await request(app).patch(`/api/gastos/${gasto._id}/revision`)
-        .set("Authorization", `Bearer ${auditorToken}`).send({ accion: "aprobar" });
-      expect(approved.status).toBe(200);
-      expect(approved.body.rendicion.estado).toBe("aprobado");
-
-      let notification;
-      for (let attempt = 0; attempt < 20 && !notification; attempt += 1) {
-        notification = await Notificacion.findOne({ gasto: gasto._id, donante: donor._id });
-        if (!notification) await new Promise((resolve) => setTimeout(resolve, 25));
-      }
-      expect(notification).not.toBeNull();
-
-      await notificacionService.procesarPendientes();
-
-      const sentNotification = await Notificacion.findOne({ gasto: gasto._id, donante: donor._id });
-      expect(sentNotification.estado).toBe("enviada");
-      expect(sentNotification.intentos).toBe(0);
-      expect(receivedEmails).toHaveLength(1);
-      expect(receivedEmails[0]).toContain("Donante SMTP");
-    });
-
-    test("records failed SMTP attempts and moves the notification to failed after three retries", async () => {
-      rejectEmail = true;
-      const donor = await Donante.create({ nombre: "Donante SMTP Falla", email: "failure@integration.test", tipo: "individual" });
-      const gasto = await seedGasto({ state: "aprobado", amount: 100, autoApproved: true });
-      const notification = await Notificacion.create({ donante: donor._id, gasto: gasto._id, destinatario: donor.email, programadaPara: new Date(Date.now() - 1000) });
-
-      for (let attempt = 1; attempt <= 4; attempt += 1) {
-        if (attempt > 1) await Notificacion.updateOne({ _id: notification._id }, { $set: { proximoIntento: new Date(Date.now() - 1000) } });
-        await notificacionService.procesarPendientes();
-        const updated = await Notificacion.findById(notification._id);
-        expect(updated.intentos).toBe(attempt);
-        expect(updated.estado).toBe(attempt === 4 ? "fallida" : "pendiente");
-        expect(updated.ultimoError).toContain("550 Simulated integration SMTP failure");
-      }
-    });
-
-    test.each(["semanal", "mensual"])("schedules %s donor notifications for a future delivery date", async (frecuencia) => {
-      const donor = await Donante.create({ nombre: `Donante ${frecuencia}`, email: `${frecuencia}@integration.test`, tipo: "individual", frecuenciaNotificacion: frecuencia });
-      const gasto = await seedGasto({ state: "aprobado", amount: 100, autoApproved: true });
-      await Donacion.create({ donante: donor._id, proyecto: projectA._id, monto: 100 });
-
-      await notificacionService.encolarPorRendicion(gasto);
-
-      const notification = await Notificacion.findOne({ donante: donor._id, gasto: gasto._id });
-      expect(notification).not.toBeNull();
-      expect(notification.estado).toBe("pendiente");
-      expect(notification.programadaPara.getTime()).toBeGreaterThan(Date.now());
     });
   });
 });

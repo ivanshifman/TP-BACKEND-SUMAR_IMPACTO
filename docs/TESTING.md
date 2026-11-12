@@ -33,19 +33,20 @@ repositorio. En cada `push` y `pull request`, GitHub Actions ejecuta `npm run ch
 | Control | Estado | Detalle |
 | --- | --- | --- |
 | `npm run check` | Aprobado | Sintaxis JavaScript correcta en 68 archivos y compilación correcta de 25 plantillas Pug. |
-| `npm test` | Aprobado | 11 suites y 184 pruebas con Jest; incluye las dos suites de integración contra MongoDB temporal y aislado. No accede a Atlas. |
-| `npm run test:coverage` | Aprobado | 11 suites y 184 pruebas; sentencias 74.39 %, ramas 68.42 %, funciones 65.05 % y líneas 76.75 %. Reporte HTML en `coverage/lcov-report/index.html`. |
+| `npm test` | Aprobado | 12 suites y 189 pruebas con Jest; incluye la verificación del contrato OpenAPI y las dos suites de integración contra MongoDB temporal y aislado. No accede a Atlas. |
+| `npm run test:coverage` | Aprobado | 12 suites y 189 pruebas; sentencias 74.39 %, ramas 68.42 %, funciones 65.05 % y líneas 76.75 %. Reporte HTML en `coverage/lcov-report/index.html`. |
 | `npm audit --omit=dev` | Pendiente | No se ejecutó en esta verificación. |
 
 La prueba de matriz de permisos normaliza los finales de línea de su fixture para que la comparación sea
-igual en Windows y Unix. Las pruebas HTTP de `app.test.js` sustituyen la bitácora: esa suite comprueba
-middleware y respuestas sin necesitar una conexión MongoDB.
+igual en Windows y Unix. `openapi.test.js` compara rutas, métodos, autenticación y roles del contrato con
+el router real, además de comprobar servidores, esquemas de éxito y referencias. Las pruebas HTTP de
+`app.test.js` sustituyen la bitácora: esa suite comprueba middleware y respuestas sin necesitar una conexión MongoDB.
 
 ## Registro de evidencia
 
 | Fecha | Responsable | Entorno (SO, Node) | `npm run check` | `npm test` | Cobertura | Observaciones |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-11 | Agente de desarrollo (Copilot) | Windows, Node.js v24.17.0 | Aprobado | Aprobado: 11 suites, 184 pruebas | 74.39 % sentencias; 68.42 % ramas; 65.05 % funciones; 76.75 % líneas | Integración con MongoDB temporal; no se usó Atlas. |
+| 2026-11-11 | Agente de desarrollo (Copilot) | Windows, Node.js v24.17.0 | Aprobado | Aprobado: 12 suites, 189 pruebas | 74.39 % sentencias; 68.42 % ramas; 65.05 % funciones; 76.75 % líneas | Integración con MongoDB temporal; no se usó Atlas. |
 
 ## Matriz de casos
 

@@ -1,42 +1,53 @@
-<div align="center">
-
 # SumarImpacto — Backend
 
-**Plataforma de transparencia y rendición de cuentas para donaciones a organizaciones sociales**
+Plataforma de transparencia y rendición de cuentas para donaciones a organizaciones sociales
 
 Trabajo Práctico Integrador — **Desarrollo Web Backend (DSWB)**
 IFTS N° 29 · Comisión A · 2.º Cuatrimestre 2026
-
-</div>
 
 ---
 
 ## Tabla de contenidos
 
-1. [Descripción](#descripción)
-2. [Funcionalidades principales](#funcionalidades-principales)
-3. [Stack tecnológico](#stack-tecnológico)
-4. [Arquitectura y patrones](#arquitectura-y-patrones)
-5. [Inicio rápido](#inicio-rápido)
-6. [Variables de entorno](#variables-de-entorno)
-7. [Scripts disponibles](#scripts-disponibles)
-8. [Roles y permisos](#roles-y-permisos)
-9. [Circuito de rendición de gastos (RF-02)](#circuito-de-rendición-de-gastos-rf-02)
-10. [Autenticación y cuentas](#autenticación-y-cuentas)
-11. [Interfaz web](#interfaz-web)
-12. [API REST](#api-rest)
-13. [Modelo de datos](#modelo-de-datos)
-14. [Seguridad](#seguridad)
-15. [Bitácora de auditoría](#bitácora-de-auditoría)
-16. [Pruebas](#pruebas)
-17. [Migración entre versiones](#migración-entre-versiones)
-18. [Estructura del proyecto](#estructura-del-proyecto)
-19. [Despliegue](#despliegue)
-20. [Documentación adicional](#documentación-adicional)
-21. [Solución de problemas](#solución-de-problemas)
-22. [Alcance y limitaciones conocidas](#alcance-y-limitaciones-conocidas)
-23. [Bibliografía](#bibliografía)
-24. [Equipo](#equipo)
+- [SumarImpacto — Backend](#sumarimpacto--backend)
+  - [Tabla de contenidos](#tabla-de-contenidos)
+  - [Descripción](#descripción)
+  - [Funcionalidades principales](#funcionalidades-principales)
+  - [Stack tecnológico](#stack-tecnológico)
+  - [Arquitectura y patrones](#arquitectura-y-patrones)
+  - [Inicio rápido](#inicio-rápido)
+    - [Requisitos previos](#requisitos-previos)
+    - [1. Clonar e instalar dependencias](#1-clonar-e-instalar-dependencias)
+    - [2. Configurar el entorno](#2-configurar-el-entorno)
+    - [3. Crear el administrador inicial](#3-crear-el-administrador-inicial)
+    - [4. (Opcional) Cargar datos de ejemplo](#4-opcional-cargar-datos-de-ejemplo)
+    - [5. Iniciar el servidor](#5-iniciar-el-servidor)
+    - [Desarrollo local con Docker](#desarrollo-local-con-docker)
+  - [Variables de entorno](#variables-de-entorno)
+  - [Scripts disponibles](#scripts-disponibles)
+  - [Roles y permisos](#roles-y-permisos)
+    - [Matriz de permisos](#matriz-de-permisos)
+  - [Circuito de rendición de gastos (RF-02)](#circuito-de-rendición-de-gastos-rf-02)
+  - [Autenticación y cuentas](#autenticación-y-cuentas)
+    - [Política de contraseñas](#política-de-contraseñas)
+    - [Ciclo de vida de una cuenta](#ciclo-de-vida-de-una-cuenta)
+    - [Ejemplo con la API](#ejemplo-con-la-api)
+  - [Interfaz web](#interfaz-web)
+  - [API REST](#api-rest)
+    - [Códigos de estado](#códigos-de-estado)
+  - [Modelo de datos](#modelo-de-datos)
+  - [Seguridad](#seguridad)
+  - [Bitácora de auditoría](#bitácora-de-auditoría)
+  - [Pruebas](#pruebas)
+  - [Migración entre versiones](#migración-entre-versiones)
+  - [Estructura del proyecto](#estructura-del-proyecto)
+  - [Despliegue en Render](#despliegue-en-render)
+    - [Configuración del servicio](#configuración-del-servicio)
+  - [Documentación adicional](#documentación-adicional)
+  - [Solución de problemas](#solución-de-problemas)
+  - [Alcance y limitaciones conocidas](#alcance-y-limitaciones-conocidas)
+  - [Bibliografía](#bibliografía)
+  - [Equipo](#equipo)
 
 ---
 
@@ -122,7 +133,7 @@ flowchart LR
 - **Utils:** funciones puras y sin dependencias de Express (política de contraseñas, reglas de rendición y de
   presupuesto, fechas, exclusión mutua), fáciles de probar de forma aislada.
 
-**Patrones y decisiones de diseño**
+### Patrones y decisiones de diseño
 
 | Patrón | Dónde se aplica |
 | --- | --- |
@@ -200,19 +211,21 @@ npm run dev      # desarrollo, con recarga automática (nodemon)
 npm start        # ejecución normal
 ```
 
-La aplicación queda disponible en **http://localhost:3000**:
+La aplicación queda disponible en **<http://localhost:3000>**:
 
 | Recurso | URL |
 | --- | --- |
-| Interfaz web | http://localhost:3000/ |
-| Login | http://localhost:3000/login |
-| API REST | http://localhost:3000/api/… (contrato en [`docs/openapi.yaml`](docs/openapi.yaml)) |
-| Estado del servicio | http://localhost:3000/health |
+| Interfaz web | <http://localhost:3000/> |
+| Login | <http://localhost:3000/login> |
+| API REST | <http://localhost:3000/api/…> (contrato en [`docs/openapi.yaml`](docs/openapi.yaml)) |
+| Estado del servicio | <http://localhost:3000/health> |
 
 > **Importante:** usá siempre la misma URL en el navegador (`localhost` **o** `127.0.0.1`, no ambas). Las
 > cookies de sesión son `SameSite=Strict` y no viajan entre ambos nombres.
 
-### Alternativa: Docker
+### Desarrollo local con Docker
+
+Esta opción es solo para desarrollo local; el servicio publicado se ejecuta en Render.
 
 ```bash
 cp .env.example .env                               # completá los secretos
@@ -473,12 +486,12 @@ ya calculado.
 
 ## API REST
 
-Prefijo `/api`. Todas las rutas, salvo `/api/auth/login`, `/api/auth/refresh` y `/api/auth/logout`, exigen
-autenticación. El contrato completo (esquemas, parámetros, roles y respuestas) está en
+Prefijo `/api`. Todas las rutas bajo este prefijo, salvo `/api/auth/login`, `/api/auth/refresh` y
+`/api/auth/logout`, exigen autenticación. El contrato completo (esquemas, parámetros, roles y respuestas) está en
 [`docs/openapi.yaml`](docs/openapi.yaml) y se puede abrir con cualquier visor OpenAPI (por ejemplo
 [Swagger Editor](https://editor.swagger.io/)). Una prueba contrasta que cubra **todas** las rutas reales.
 
-Las respuestas de error tienen un formato uniforme:
+Los errores de aplicación usan este formato; solo el login con credenciales inválidas omite `codigo`:
 
 ```json
 {
@@ -659,53 +672,41 @@ sumarimpacto-backend/
 
 ---
 
-## Despliegue
+## Despliegue en Render
 
-### Opción A: servicio Node persistente + MongoDB Atlas (recomendada)
+La aplicación está desplegada como un **Web Service de Render** y usa MongoDB Atlas:
 
-Desplegar como **Web Service de Node.js en Render** (o un servicio equivalente que mantenga un proceso Express
-activo) y usar MongoDB Atlas como base administrada. No requiere procesos de fondo ni servicios adicionales
-además de la base de datos.
+- **Login:** [https://tp-backend-sumar-impacto.onrender.com/login](https://tp-backend-sumar-impacto.onrender.com/login)
+- **Estado del servicio:** [https://tp-backend-sumar-impacto.onrender.com/health](https://tp-backend-sumar-impacto.onrender.com/health)
 
-1. Subí el proyecto a GitHub sin incluir `.env`.
-2. En Render creá un **Web Service** conectado al repositorio, con `npm ci` como comando de build y `npm start`
-   como comando de inicio. Configurá el health check como `/health`.
-3. En las variables del servicio configurá `NODE_ENV=production`, `MONGODB_URI`, dos secretos JWT distintos
-   de al menos 32 caracteres y, si hay un frontend en otro dominio, `CORS_ORIGINS`. El proveedor asigna
-   `PORT`; no lo fijes a un valor local. **No hace falta agregar el dominio de la propia aplicación** a
-   `CORS_ORIGINS`: el propio sitio siempre está permitido.
-4. En Atlas autorizá la salida de red del proveedor de hosting y elegí una región cercana a la aplicación.
-   Preferí una allowlist acotada a permitir conexiones desde cualquier IP.
-5. Después del primer despliegue, creá el administrador con `npm run create-admin` desde la consola del
-   servicio. No ejecutes `npm run seed` en producción.
-6. Probá `/health`, el login, el cambio obligatorio de contraseña, una ruta protegida y una carga de comprobante.
+### Configuración del servicio
 
-Con `NODE_ENV=production` la aplicación espera estar detrás de **HTTPS**: las cookies son `Secure` y la CSP
-incluye `upgrade-insecure-requests`. Si el servicio está detrás de un proxy (Render lo está), configurá
-`TRUST_PROXY=true`.
+1. Conectá en Render el repositorio de GitHub y la rama que se desplegará. Los cambios nuevos de esa rama se
+   publican mediante el auto-deploy de Render.
+2. Configurá `npm ci` como **Build Command** y `npm start` como **Start Command**. Dejá que Render asigne
+   `PORT`; no lo fijes a un valor local. Elegí una región cercana al cluster de Atlas.
+3. En **Environment Variables**, configurá `NODE_ENV=production`, `TRUST_PROXY=true`, `MONGODB_URI` con la URI
+   del cluster, y `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` con valores aleatorios distintos de al menos 32
+   caracteres. Si hay un frontend externo, agregá su origen exacto en `CORS_ORIGINS`. No guardes estos valores
+   en Git ni compartas el archivo `.env`.
+4. En Render, consultá los rangos de salida del servicio en **Connect → Outbound**. Agregá esos rangos a
+   **Network Access** en Atlas y confirmá que el usuario de base tenga permisos de lectura y escritura sobre
+   `sumarimpacto`. No habilites acceso desde cualquier IP.
+5. Configurá `/health` como health check en los ajustes del Web Service. La aplicación responde `200` cuando
+   MongoDB está conectado y `503` si no lo está.
+6. Revisá los logs del deploy y probá el login, una ruta protegida y los flujos principales desde la URL pública.
 
-Las instancias gratuitas de Render pueden suspenderse por inactividad, lo que demora la primera respuesta
-tras reactivarse. Los comprobantes se guardan en MongoDB, no en el disco efímero de la instancia.
+Con `NODE_ENV=production`, las cookies son `Secure` y la CSP exige HTTPS. La aplicación usa Google Public DNS
+(`8.8.8.8`) y Cloudflare (`1.1.1.1`) para resolver Atlas; el servicio debe permitir consultas DNS salientes.
+Los comprobantes se guardan en MongoDB, no en el disco efímero de Render. En el plan gratuito el servicio puede
+suspenderse por inactividad y tardar en responder al primer acceso.
 
-### Opción B: Docker
+No ejecutes `npm run seed` en el servicio publicado: borra colecciones de datos antes de cargar ejemplos.
+Ejecutá `npm run create-admin` solo si hace falta crear el administrador inicial y la cuenta aún no existe.
 
-La imagen (`Dockerfile`) es multietapa, contiene solo dependencias de producción y corre como usuario no root.
-`docker-compose.yml` levanta la aplicación junto con MongoDB para desarrollo o demostraciones (ver
-[Inicio rápido](#alternativa-docker)). En un servidor propio, ejecutá la imagen detrás de un proxy inverso con
-HTTPS y apuntá `MONGODB_URI` a una base administrada.
-
-### ¿Se puede desplegar en Vercel?
-
-Es posible, pero requiere adaptaciones y no fue probado. Vercel convierte la aplicación en una Function que
-escala bajo demanda: habría que exportar la app Express como handler (hoy `server.js` abre un puerto con
-`app.listen`), reutilizar la conexión a MongoDB entre invocaciones y usar un almacén compartido para el
-limitador de solicitudes y la exclusión mutua, que hoy usan memoria local al proceso. Los archivos estáticos
-deben servirse desde `public/`; Vercel no usa `express.static()` para ellos.
-
-Referencias: [Express en Vercel](https://vercel.com/docs/frameworks/backend/express),
-[Vercel Functions](https://vercel.com/docs/functions),
-[Web Services en Render](https://render.com/docs/web-services) y
-[limitaciones del plan gratuito de Render](https://render.com/docs/free).
+Guías oficiales: [Web Services](https://render.com/docs/web-services),
+[rangos de salida](https://render.com/docs/outbound-ip-addresses),
+[health checks](https://render.com/docs/health-checks) y [planes gratuitos](https://render.com/docs/free).
 
 ---
 

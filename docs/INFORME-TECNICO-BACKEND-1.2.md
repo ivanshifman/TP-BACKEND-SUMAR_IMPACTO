@@ -48,7 +48,7 @@ El backend usa MVC con una capa de servicios:
 - **Utilidades puras:** política de contraseñas, reglas de rendición y de presupuesto, fechas y exclusión mutua.
 
 | Componente | Tecnología |
-|---|---|
+| --- | --- |
 | Runtime | Node.js (mínimo soportado: 20) |
 | Framework | Express 4.22.3 |
 | Persistencia | MongoDB y Mongoose 9.12.0 |
@@ -68,7 +68,7 @@ El dominio incluye `Usuario`, `Organizacion`, `Proyecto`, `Donante`, `Donacion`,
 en MongoDB.
 
 | Rol | Responsabilidad principal |
-|---|---|
+| --- | --- |
 | Administrador del sistema | Gestiona usuarios y datos maestros y consulta la bitácora; no carga ni resuelve rendiciones. |
 | Referente territorial | Consulta proyectos de su organización y carga comprobantes. |
 | Auditoría | Revisa y resuelve las rendiciones de su tramo y consulta la bitácora. |
@@ -122,12 +122,14 @@ base descartable de desarrollo, nunca con datos reales.
 
 ## 6. Pruebas y estado de verificación
 
-**Verificación automatizada más reciente: 2026-11-11 (Windows, Node.js v24.17.0)**
+### Verificación automatizada más reciente
+
+Ejecutada el 2026-11-11 en Windows con Node.js v24.17.0.
 
 | Verificación | Resultado |
-|---|---|
+| --- | --- |
 | `npm run check` | Sintaxis correcta en 68 archivos JavaScript; 25 plantillas Pug compiladas. |
-| `npm test` con Jest | 11 suites y 184 pruebas aprobadas, incluidas las dos suites de integración con MongoDB temporal y aislado. |
+| `npm test` con Jest | 12 suites y 189 pruebas aprobadas, incluida la verificación de sincronización OpenAPI y las dos suites de integración con MongoDB temporal y aislado. |
 | `npm run test:coverage` | 74.39 % de sentencias, 68.42 % de ramas, 65.05 % de funciones y 76.75 % de líneas; reporte HTML en `coverage/lcov-report/index.html`. |
 | `npm audit --omit=dev` y `npm audit` | Pendiente de ejecutar. |
 
@@ -143,40 +145,31 @@ reemplazan la verificación del entorno de despliegue actual.
 Las pruebas de integración usan `mongodb-memory-server-core` para persistencia aislada: no escriben en Atlas.
 Siguen pendientes las pruebas de despliegue en hosting y las de carga y rendimiento.
 
-## 7. Despliegue
+## 7. Despliegue en Render
 
-No hay un despliegue público configurado o verificado al momento de esta revisión.
+La aplicación está desplegada como Web Service de Render:
 
-### Recomendación
+- **Login:** <https://tp-backend-sumar-impacto.onrender.com/login>
+- **Health check:** <https://tp-backend-sumar-impacto.onrender.com/health>
 
-Para el diseño actual se recomienda un Web Service Node persistente conectado a MongoDB Atlas, por ejemplo Render:
+El servicio usa `npm ci` para instalar dependencias y `npm start` para iniciar Express. Render asigna el puerto;
+`TRUST_PROXY=true` permite reconocer correctamente las solicitudes HTTPS detrás del proxy. Las variables
+`MONGODB_URI`, `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` se configuran en Render, no en Git. El health check
+`/health` devuelve `200` si la conexión a Atlas está activa.
 
-1. Conectar el repositorio y configurar `npm ci` como build y `npm start` como comando de inicio.
-2. Usar `/health` como health check y el `PORT` que provea el servicio.
-3. Configurar secretos en el panel del hosting, no en Git: `NODE_ENV=production`, `MONGODB_URI`, secretos JWT y,
-   si hay un frontend en otro dominio, `CORS_ORIGINS`. El dominio de la propia aplicación no hace falta. Detrás
-   de un proxy, `TRUST_PROXY=true`.
-4. Limitar el acceso de red de Atlas a los orígenes necesarios y elegir regiones cercanas.
-5. Crear el administrador desde el entorno desplegado y probar login, cambio de contraseña, permisos y flujos
-   relevantes.
+En MongoDB Atlas se deben permitir los rangos de salida del servicio Render y restringir el usuario de base a
+los permisos necesarios. Los comprobantes se almacenan en MongoDB, por lo que no dependen del disco efímero de
+la instancia.
 
-Como alternativa se incluye un `Dockerfile` y un `docker-compose.yml` (aplicación + MongoDB). Las instancias
-gratuitas de Render pueden suspenderse por inactividad, lo que demora la primera respuesta tras reactivarse.
-
-**Vercel** requiere adaptaciones y no fue probado: hay que exportar la app Express como handler (hoy `server.js`
-abre un puerto), reutilizar la conexión a MongoDB entre invocaciones y usar un almacén compartido para el rate
-limiter y la exclusión mutua, que hoy usan memoria local. `express.static()` tampoco sirve los estáticos en
-Vercel; hay que usar `public/` según la integración.
-
-Referencias oficiales: [Express en Vercel](https://vercel.com/docs/frameworks/backend/express),
-[Vercel Functions](https://vercel.com/docs/functions), [Web Services de Render](https://render.com/docs/web-services)
-y [limitaciones del plan gratuito de Render](https://render.com/docs/free).
+Referencias: [Web Services](https://render.com/docs/web-services),
+[rangos de salida](https://render.com/docs/outbound-ip-addresses),
+[health checks](https://render.com/docs/health-checks) y [planes gratuitos](https://render.com/docs/free).
 
 ## 8. Pendientes para la entrega académica
 
 - Repetir las verificaciones en el entorno de entrega y actualizar la evidencia de `TESTING.md` si cambia el
   runtime o la configuración.
-- Desplegar y comprobar la aplicación públicamente; añadir al documento final la URL HTTPS.
+- Probar en Render los flujos funcionales y registrar los resultados del entorno desplegado.
 - Confirmar con Mesa Coordinadora los umbrales de rendición.
 - Definir con la cátedra si las notificaciones por correo (RF-03) deben formar parte de esta entrega.
 - Medir el rendimiento en la infraestructura objetivo; no está medido ni demostrado.

@@ -60,7 +60,7 @@ matriz de permisos (`npm run permisos`). Una prueba la compara con una referenci
 cambio de permisos pase inadvertido.
 
 | Recurso/acción | Referente | Auditoría | Mesa | Administración | Trabajo Social | Administrador |
-|---|---:|---:|---:|---:|---:|---:|
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Ver proyectos | Propios | Sí | Sí | Sí | Sí | Sí |
 | Gestionar proyectos | No | No | Sí | No | Sí | Sí |
 | Ver donantes y donaciones | No | Sí | Sí | Sí | No | Sí |

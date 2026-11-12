@@ -1,13 +1,15 @@
-# Migración de 1.0 a 1.1
+# Guía de migración
 
-## Antes de comenzar
+## Migración de 1.0 a 1.1
+
+### Antes de comenzar: 1.0 a 1.1
 
 1. Hacé un backup de MongoDB Atlas.
 2. Desplegá la versión 1.1 en un entorno de staging primero.
 3. Configurá secretos JWT nuevos e independientes.
 4. No ejecutes `npm run seed` sobre una base con datos reales: el seed borra las colecciones del dominio.
 
-## Migración de contraseñas
+### Migración de contraseñas
 
 En 1.0 el modelo `Usuario` documentaba que la contraseña se guardaba en texto plano porque la autenticación estaba fuera de alcance. En 1.1 Passport compara hashes bcrypt. Ejecutá:
 
@@ -17,7 +19,7 @@ npm run migrate-v1.1
 
 El script recorre `usuarios`, convierte contraseñas que no tengan prefijo bcrypt, activa cuentas que no tenían `activo` y revoca refresh tokens. No muestra ni exporta contraseñas. Si las contraseñas ya son bcrypt, no las vuelve a procesar.
 
-## Datos que requieren decisión humana
+### Datos que requieren decisión humana
 
 El modelo anterior de `Proyecto` solo tenía `montoObjetivo` opcional. RF-01/RF-02 necesita `presupuestoTotal`, `periodoInicio`, `periodoFin` y `rubros`. El script informa cuántos proyectos están incompletos; **no inventa importes, fechas ni rubros**. Completalos desde el formulario de edición o una migración validada por el equipo.
 
@@ -25,11 +27,11 @@ Los `Gasto` históricos no tienen archivo digital, rubro, actor ni estado de rev
 
 Los usuarios con rol `referente_territorial` deben tener `organizacion` asignada desde Administración. No se puede inferir la organización de una cuenta antigua.
 
-## Índices
+### Índices
 
 Mongoose crea los índices declarados al inicializar los modelos según la configuración de la base. En producción, planificá la creación de índices únicos (por ejemplo email de donante y usuario) para evitar bloqueos inesperados por datos duplicados. Antes de desplegar, revisá duplicados preexistentes.
 
-## Verificación posterior
+### Verificación posterior: 1.0 a 1.1
 
 - Probar login de una cuenta migrada.
 - Confirmar que no se puede autenticar un usuario inactivo.
@@ -40,16 +42,16 @@ Mongoose crea los índices declarados al inicializar los modelos según la confi
 
 ---
 
-# Migración de 1.1 a 1.2
+## Migración de 1.1 a 1.2
 
-## Antes de comenzar
+### Antes de comenzar: 1.1 a 1.2
 
 1. Hacé un backup de MongoDB.
 2. Ejecutá `npm install` (o `npm ci`): se retiraron las dependencias `nodemailer` y `smtp-server`.
 3. Eliminá del `.env` las variables que ya no se usan: `SMTP_*`, `APP_BASE_URL` y `COMPROBANTE_LINK_SECRET`.
    Si la clave SMTP era real, **revocala** en el proveedor.
 
-## Datos
+### Datos
 
 ```bash
 npm run migrate-v1.2
@@ -64,7 +66,7 @@ El script es idempotente y elimina lo que dejó de existir:
 No modifica contraseñas, roles, montos ni fechas. Si no lo ejecutás, la aplicación funciona igual: Mongoose
 ignora los campos que ya no están en el esquema.
 
-## Cambios que conviene conocer
+### Cambios que conviene conocer
 
 - **Cuentas nuevas y restablecidas:** quedan con cambio de contraseña pendiente. Las cuentas **existentes** no
   se ven afectadas y conservan su contraseña.
@@ -79,7 +81,7 @@ ignora los campos que ya no están en el esquema.
 - **Bitácora:** se crea la colección `auditorias` al primer uso; no requiere migración.
 - **CORS:** `CORS_ORIGINS` ya no debe incluir el dominio de la propia aplicación.
 
-## Verificación posterior
+### Verificación posterior: 1.1 a 1.2
 
 - Ingresar con una cuenta existente y comprobar que no se le exige cambiar la contraseña.
 - Crear un usuario de prueba y comprobar que debe cambiar la contraseña al ingresar.

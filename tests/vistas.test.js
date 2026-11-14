@@ -2,8 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pug from "pug";
+import { jest } from "@jest/globals";
 import { puedeRol } from "../src/config/permisos.js";
 import { ROLE_LABELS } from "../src/config/security.js";
+import Proyecto from "../src/models/Proyecto.js";
+import { mostrarFormularioNuevoGasto } from "../src/controllers/viewsController.js";
 
 // Renderiza las vistas con datos de ejemplo para detectar errores de plantilla (variables
 // inexistentes, condiciones por rol) sin necesidad de base de datos.
@@ -99,6 +102,27 @@ describe("donantes y organizaciones", () => {
 
   test("la lista de organizaciones se renderiza", () => {
     expect(vista("organizaciones/lista", { organizaciones: [{ ...organizacion, cantidadProyectos: 3 }] }, "mesa_coordinadora")).toContain("Organización Norte");
+  });
+});
+
+describe("gastos", () => {
+  test("el formulario de nuevo gasto muestra los proyectos activos aunque no tengan presupuesto completo", async () => {
+    const proyectoIncompleto = { _id: "p2", nombre: "Proyecto sin presupuesto completo", activo: true };
+    const findSpy = jest.spyOn(Proyecto, "find").mockReturnValue({
+      sort: jest.fn().mockResolvedValue([proyectoIncompleto]),
+    });
+    const req = { user: { rol: "administrador" }, query: {} };
+    const res = { render: jest.fn() };
+
+    await mostrarFormularioNuevoGasto(req, res);
+
+    expect(findSpy).toHaveBeenCalledWith({ activo: { $ne: false } });
+    expect(res.render).toHaveBeenCalledWith("gastos/formulario", expect.objectContaining({
+      gasto: { proyecto: "" },
+      proyectos: [proyectoIncompleto],
+    }));
+
+    findSpy.mockRestore();
   });
 });
 

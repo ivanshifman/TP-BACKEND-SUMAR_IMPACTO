@@ -328,10 +328,6 @@ export const eliminarDonacionDesdeFormulario = asyncHandler(async (req, res) => 
 
 export const mostrarFormularioNuevoGasto = asyncHandler(async (req, res) => {
   const filtro = req.user?.rol === ROLES.REFERENTE ? { organizacion: req.user.organizacion, activo: { $ne: false } } : { activo: { $ne: false } };
-  filtro.presupuestoTotal = { $gt: 0 };
-  filtro.periodoInicio = { $exists: true };
-  filtro.periodoFin = { $exists: true };
-  filtro.rubros = { $exists: true, $ne: [] };
   const proyectos = await Proyecto.find(filtro).sort({ nombre: 1 });
   res.render("gastos/formulario", {
     titulo: "SumarImpacto - Nuevo gasto",

@@ -330,10 +330,9 @@ export const mostrarFormularioNuevoGasto = asyncHandler(async (req, res) => {
   const filtro = req.user?.rol === ROLES.REFERENTE ? { organizacion: req.user.organizacion, activo: { $ne: false } } : { activo: { $ne: false } };
   const proyectosDb = await Proyecto.find(filtro).sort({ nombre: 1 });
   const saldos = await proyectoService.calcularSaldos(proyectosDb.map((proyecto) => proyecto._id));
-  const proyectos = proyectosDb.map((proyecto) => ({
-    ...proyecto.toObject(),
-    saldoDisponible: saldos.get(String(proyecto._id))?.saldoDisponible ?? 0,
-  }));
+  const proyectos = proyectosDb
+    .filter((proyecto) => (saldos.get(String(proyecto._id))?.saldoDisponible ?? 0) > 0)
+    .map((proyecto) => proyecto.toObject());
   res.render("gastos/formulario", {
     titulo: "SumarImpacto - Nuevo gasto",
     gasto: { proyecto: req.query.proyectoId || "" },

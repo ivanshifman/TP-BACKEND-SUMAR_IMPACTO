@@ -211,7 +211,8 @@ describe("versión 1.2 — integración con MongoDB aislado", () => {
       const cookie = `access_token=${bearerFor("referente")}`;
       const formulario = await request(app).get("/gastos/nuevo").set("Cookie", cookie);
       expect(formulario.status).toBe(200);
-      expect(formulario.text).toContain("Proyecto Norte - saldo disponible: $10.000,00");
+      expect(formulario.text).toContain(">Proyecto Norte</option>");
+      expect(formulario.text).not.toContain("Proyecto Norte - saldo disponible");
 
       let registro = request(app).post("/gastos").set("Cookie", cookie);
       for (const [clave, valor] of Object.entries(expenseForm(projectA, 400))) registro = registro.field(clave, valor);

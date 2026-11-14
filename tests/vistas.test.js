@@ -107,7 +107,7 @@ describe("donantes y organizaciones", () => {
 });
 
 describe("gastos", () => {
-  test("el formulario ofrece todos los proyectos activos y muestra el saldo disponible", async () => {
+  test("el formulario solo ofrece proyectos activos con saldo y muestra solo sus nombres", async () => {
     const proyectoConfigurado = {
       _id: "p1",
       nombre: "Proyecto Norte",
@@ -136,19 +136,25 @@ describe("gastos", () => {
     expect(saldoSpy).toHaveBeenCalledWith(["p1", "p2"]);
     expect(res.render).toHaveBeenCalledWith("gastos/formulario", expect.objectContaining({
       gasto: { proyecto: "" },
-      proyectos: [
-        { _id: "p1", nombre: "Proyecto Norte", saldoDisponible: 5000 },
-        { _id: "p2", nombre: "Proyecto sin presupuesto completo", saldoDisponible: 0 },
-      ],
+      proyectos: [{ _id: "p1", nombre: "Proyecto Norte" }],
     }));
 
     findSpy.mockRestore();
     saldoSpy.mockRestore();
   });
 
-  test("el formulario explica cuando no hay proyectos activos disponibles", () => {
+  test("el formulario explica cuando no hay proyectos activos con saldo", () => {
     const html = vista("gastos/formulario", { gasto: { proyecto: "" }, proyectos: [] }, "referente_territorial");
-    expect(html).toContain("No hay proyectos activos disponibles para tu organización");
+    expect(html).toContain("No hay proyectos activos con saldo disponible para tu organización");
+  });
+
+  test("el selector muestra el nombre del proyecto sin datos de saldo", () => {
+    const html = vista("gastos/formulario", {
+      gasto: { proyecto: "" },
+      proyectos: [{ _id: "p1", nombre: "Reequipamiento de cocina comunitaria" }],
+    }, "referente_territorial");
+    expect(html).toContain("Reequipamiento de cocina comunitaria");
+    expect(html).not.toContain("saldo disponible: $");
   });
 });
 

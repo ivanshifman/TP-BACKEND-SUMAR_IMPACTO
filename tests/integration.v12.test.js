@@ -206,6 +206,116 @@ describe("versión 1.2 — integración con MongoDB aislado", () => {
     });
   });
 
+  describe("vistas", () => {
+    test("renderiza inicio, listados, detalles y formularios de alta", async () => {
+      const cookie = `access_token=${bearerFor("admin")}`;
+      const rutas = [
+        "/",
+        "/donantes",
+        `/donantes/${donor._id}`,
+        "/organizaciones",
+        `/organizaciones/${organizationA._id}`,
+        "/gastos",
+        "/proyectos/nuevo",
+        "/donantes/nuevo",
+        "/organizaciones/nuevo",
+        "/donaciones/nueva",
+        `/proyectos/${projectA._id}/editar`,
+        `/donantes/${donor._id}/editar`,
+        `/organizaciones/${organizationA._id}/editar`,
+        `/donaciones/${(await Donacion.findOne({ proyecto: projectA._id }))._id}/editar`,
+      ];
+
+      for (const ruta of rutas) {
+        const respuesta = await request(app).get(ruta).set("Cookie", cookie);
+        expect(respuesta.status).toBe(200);
+      }
+
+      const gastosDelReferente = await request(app).get("/gastos")
+        .set("Cookie", `access_token=${bearerFor("referente")}`);
+      expect(gastosDelReferente.status).toBe(200);
+    });
+  });
+
+  describe("administración web", () => {
+    test("gestiona usuarios desde el panel con validación de confirmación", async () => {
+      const cookie = `access_token=${bearerFor("admin")}`;
+      for (const ruta of ["/admin", "/admin/usuarios", "/admin/auditoria"]) {
+        expect((await request(app).get(ruta).set("Cookie", cookie)).status).toBe(200);
+      }
+
+      const base = {
+        nombre: "Auditoría Web",
+        email: "auditoria-web@integration.test",
+        rol: roles.auditoria,
+        password: temporal,
+      };
+      expect((await request(app).post("/admin/usuarios").set("Cookie", cookie)
+        .send({ ...base, confirmarPassword: "NoCoincide-2026!" })).status).toBe(400);
+
+      const creado = await request(app).post("/admin/usuarios").set("Cookie", cookie)
+        .send({ ...base, confirmarPassword: temporal });
+      expect(creado.status).toBe(302);
+      const usuario = await Usuario.findOne({ email: base.email });
+      expect((await request(app).get(`/admin/usuarios/${usuario._id}/editar`).set("Cookie", cookie)).status).toBe(200);
+
+      expect((await request(app).put(`/admin/usuarios/${usuario._id}`).set("Cookie", cookie)
+        .send({ nombre: "Auditoría Actualizada", rol: roles.auditoria })).status).toBe(302);
+      expect((await request(app).post(`/admin/usuarios/${usuario._id}/estado`).set("Cookie", cookie)).status).toBe(302);
+      expect((await request(app).post(`/admin/usuarios/${usuario._id}/password`).set("Cookie", cookie)
+        .send({ passwordNueva: "Restablecida-2026!", confirmarPassword: "Restablecida-2026!" })).status).toBe(302);
+    });
+
+    test("gestiona campañas y consulta reportes HTML y PDF", async () => {
+      const cookie = `access_token=${bearerFor("admin")}`;
+      expect((await request(app).get("/admin/campanias").set("Cookie", cookie)).status).toBe(200);
+      expect((await request(app).get("/admin/campanias/nueva").set("Cookie", cookie)).status).toBe(200);
+
+      const campos = {
+        nombre: "Campaña Web",
+        descripcion: "Campaña creada para probar la administración web.",
+        meta: "5000",
+        fechaInicio: "2026-01-01",
+        fechaFin: "2026-12-31",
+      };
+      expect((await request(app).post("/admin/campanias").set("Cookie", cookie).send(campos)).status).toBe(302);
+      const campania = await Campania.findOne({ nombre: campos.nombre });
+      expect((await request(app).get(`/admin/campanias/${campania._id}/editar`).set("Cookie", cookie)).status).toBe(200);
+      expect((await request(app).put(`/admin/campanias/${campania._id}`).set("Cookie", cookie)
+        .send({ ...campos, nombre: "Campaña Web actualizada" })).status).toBe(302);
+      expect((await request(app).post(`/admin/campanias/${campania._id}/estado`).set("Cookie", cookie)).status).toBe(302);
+      expect((await request(app).get(`/admin/campanias/${campania._id}/reporte`).set("Cookie", cookie)).status).toBe(200);
+      const pdf = await request(app).get(`/admin/campanias/${campania._id}/reporte.pdf`).set("Cookie", cookie);
+      expect(pdf.status).toBe(200);
+      expect(pdf.headers["content-type"]).toContain("application/pdf");
+    });
+
+    test("filtra, revisa y descarga comprobantes de rendiciones", async () => {
+      const gasto = await seedGasto(600);
+      const listadoAuditoria = await request(app).get("/rendiciones?estado=en_revision")
+        .set("Cookie", `access_token=${bearerFor("auditoria")}`);
+      expect(listadoAuditoria.status).toBe(200);
+      const listadoReferente = await request(app).get("/rendiciones")
+        .set("Cookie", `access_token=${bearerFor("referente")}`);
+      expect(listadoReferente.status).toBe(200);
+
+      const revision = await request(app).post(`/rendiciones/${gasto._id}/revision`)
+        .set("Cookie", `access_token=${bearerFor("auditoria")}`)
+        .send({ accion: "aprobar" });
+      expect(revision.status).toBe(302);
+      expect((await Gasto.findById(gasto._id)).estado).toBe("aprobado");
+
+      const comprobante = await request(app).get(`/rendiciones/${gasto._id}/comprobante`)
+        .set("Cookie", `access_token=${bearerFor("referente")}`);
+      expect(comprobante.status).toBe(200);
+      expect(comprobante.headers["content-type"]).toBe("application/pdf");
+
+      const inexistente = await request(app).get(`/rendiciones/${new mongoose.Types.ObjectId()}/comprobante`)
+        .set("Cookie", `access_token=${bearerFor("auditoria")}`);
+      expect(inexistente.status).toBe(404);
+    });
+  });
+
   describe("validaciones de negocio", () => {
     test("el flujo web muestra el saldo del proyecto y registra una rendición de bajo monto", async () => {
       const cookie = `access_token=${bearerFor("referente")}`;

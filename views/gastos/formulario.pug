@@ -13,7 +13,8 @@ block contenido
         each p in proyectos
           option(
             value=p._id
-            selected=gasto.proyecto && String(gasto.proyecto) === String(p._id)
+            data-rubros=JSON.stringify((p.rubros || []).map((rubro) => rubro.nombre))
+            selected=String(gasto.proyecto || "") === String(p._id)
           )= p.nombre
       if proyectos.length === 0
         small No hay proyectos activos con saldo disponible para tu organización.
@@ -30,11 +31,12 @@ block contenido
 
     .campo
       label(for="rubro") Rubro presupuestado
-      input#rubro(type="text" name="rubro" list="rubros-lista" required placeholder="Ej.: Alimentos")
-      datalist#rubros-lista
-        each p in proyectos
-          each r in (p.rubros || [])
-            option(value=r.nombre)
+      select#rubro(name="rubro" required disabled data-placeholder="Seleccionar rubro...")
+        option(value="") Seleccionar rubro...
+        each nombre in (rubrosIniciales || [])
+          option(value=nombre)= nombre
+        if gasto.proyecto
+          option(value="otro") Otro
       small Si elegís “otro”, la rendición pasa a revisión de Auditoría.
 
     .campo

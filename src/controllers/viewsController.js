@@ -333,10 +333,12 @@ export const mostrarFormularioNuevoGasto = asyncHandler(async (req, res) => {
   const proyectos = proyectosDb
     .filter((proyecto) => (saldos.get(String(proyecto._id))?.saldoDisponible ?? 0) > 0)
     .map((proyecto) => proyecto.toObject());
+  const proyectoSeleccionado = proyectos.find((proyecto) => String(proyecto._id) === String(req.query.proyectoId));
   res.render("gastos/formulario", {
     titulo: "SumarImpacto - Nuevo gasto",
     gasto: { proyecto: req.query.proyectoId || "" },
     proyectos,
+    rubrosIniciales: proyectoSeleccionado?.rubros?.map((rubro) => rubro.nombre) || [],
   });
 });
 

@@ -151,10 +151,15 @@ describe("gastos", () => {
   test("el selector muestra el nombre del proyecto sin datos de saldo", () => {
     const html = vista("gastos/formulario", {
       gasto: { proyecto: "" },
-      proyectos: [{ _id: "p1", nombre: "Reequipamiento de cocina comunitaria" }],
+      proyectos: [{ _id: "p1", nombre: "Reequipamiento de cocina comunitaria", rubros: [{ nombre: "Alimentos" }, { nombre: "Insumos" }] }],
+      rubrosIniciales: [],
     }, "referente_territorial");
     expect(html).toContain("Reequipamiento de cocina comunitaria");
     expect(html).not.toContain("saldo disponible: $");
+    expect(html).toContain('data-rubros="[&quot;Alimentos&quot;,&quot;Insumos&quot;]"');
+    expect(html).toContain('<select id="rubro"');
+    expect(html).not.toContain("<datalist");
+    expect(html).toContain("Seleccionar rubro...");
   });
 });
 

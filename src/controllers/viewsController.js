@@ -27,6 +27,22 @@ function normalizarPresupuesto(body) {
   };
 }
 
+function proyectoListoParaRendicion(proyecto) {
+  if (!proyecto.periodoInicio || !proyecto.periodoFin) return false;
+  const presupuesto = Number(proyecto.presupuestoTotal);
+  const inicio = new Date(proyecto.periodoInicio);
+  const fin = new Date(proyecto.periodoFin);
+  const rubros = Array.isArray(proyecto.rubros) ? proyecto.rubros : [];
+  const rubrosValidos = rubros.length > 0 && rubros.every((rubro) =>
+    typeof rubro.nombre === "string" && rubro.nombre.trim().length > 0 &&
+    Number.isFinite(Number(rubro.montoAprobado)) && Number(rubro.montoAprobado) > 0);
+
+  return Number.isFinite(presupuesto) && presupuesto > 0 &&
+    Number.isFinite(inicio.getTime()) && Number.isFinite(fin.getTime()) && fin >= inicio &&
+    rubrosValidos &&
+    rubros.reduce((total, rubro) => total + Number(rubro.montoAprobado), 0) <= presupuesto;
+}
+
 export const inicio = asyncHandler(async (req, res) => {
   const filtro = req.user?.rol === ROLES.REFERENTE ? { organizacion: req.user.organizacion } : {};
   const verInactivos = req.query.inactivos === "1" && res.locals.puede("GESTION_PROYECTOS");
@@ -328,7 +344,13 @@ export const eliminarDonacionDesdeFormulario = asyncHandler(async (req, res) => 
 
 export const mostrarFormularioNuevoGasto = asyncHandler(async (req, res) => {
   const filtro = req.user?.rol === ROLES.REFERENTE ? { organizacion: req.user.organizacion, activo: { $ne: false } } : { activo: { $ne: false } };
-  const proyectos = await Proyecto.find(filtro).sort({ nombre: 1 });
+  const proyectosDb = await Proyecto.find(filtro).sort({ nombre: 1 });
+  const proyectosListos = proyectosDb.filter(proyectoListoParaRendicion);
+  const saldos = await proyectoService.calcularSaldos(proyectosListos.map((proyecto) => proyecto._id));
+  const proyectos = proyectosListos.map((proyecto) => ({
+    ...proyecto.toObject(),
+    saldoDisponible: saldos.get(String(proyecto._id))?.saldoDisponible ?? 0,
+  }));
   res.render("gastos/formulario", {
     titulo: "SumarImpacto - Nuevo gasto",
     gasto: { proyecto: req.query.proyectoId || "" },

@@ -207,6 +207,23 @@ describe("versión 1.2 — integración con MongoDB aislado", () => {
   });
 
   describe("validaciones de negocio", () => {
+    test("el flujo web muestra el saldo del proyecto y registra una rendición de bajo monto", async () => {
+      const cookie = `access_token=${bearerFor("referente")}`;
+      const formulario = await request(app).get("/gastos/nuevo").set("Cookie", cookie);
+      expect(formulario.status).toBe(200);
+      expect(formulario.text).toContain("Proyecto Norte - saldo disponible: $10.000,00");
+
+      let registro = request(app).post("/gastos").set("Cookie", cookie);
+      for (const [clave, valor] of Object.entries(expenseForm(projectA, 400))) registro = registro.field(clave, valor);
+      const creado = await registro.attach("comprobante", validPdf(), { filename: "comprobante.pdf", contentType: "application/pdf" });
+      expect(creado.status).toBe(302);
+
+      const detalle = await request(app).get(creado.headers.location).set("Cookie", cookie);
+      expect(detalle.status).toBe(200);
+      expect(detalle.text).toContain("aprobado");
+      expect(await Gasto.countDocuments({ proyecto: projectA._id, estado: "aprobado", aprobadoAutomaticamente: true })).toBe(1);
+    });
+
     test("rechaza fechas futuras y montos fuera de rango en donaciones y rendiciones", async () => {
       const proximoAnio = new Date(Date.now() + 366 * 24 * 60 * 60 * 1000).toISOString();
       const donacion = (extra) => request(app).post("/api/donaciones").set(auth("admin")).send({ donante: String(donor._id), proyecto: String(projectA._id), monto: 100, ...extra });

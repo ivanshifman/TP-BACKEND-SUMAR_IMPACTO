@@ -107,19 +107,19 @@ describe("donantes y organizaciones", () => {
 });
 
 describe("gastos", () => {
-  test("el formulario solo ofrece proyectos listos y muestra el saldo disponible", async () => {
-    const proyectoListo = {
+  test("el formulario ofrece todos los proyectos activos y muestra el saldo disponible", async () => {
+    const proyectoConfigurado = {
       _id: "p1",
       nombre: "Proyecto Norte",
-      presupuestoTotal: 10000,
-      periodoInicio: new Date("2026-01-01"),
-      periodoFin: new Date("2026-12-31"),
-      rubros: [{ nombre: "Alimentos", montoAprobado: 10000 }],
       toObject() { return { _id: this._id, nombre: this.nombre }; },
     };
-    const proyectoIncompleto = { _id: "p2", nombre: "Proyecto sin presupuesto completo" };
+    const proyectoIncompleto = {
+      _id: "p2",
+      nombre: "Proyecto sin presupuesto completo",
+      toObject() { return { _id: this._id, nombre: this.nombre }; },
+    };
     const findSpy = jest.spyOn(Proyecto, "find").mockReturnValue({
-      sort: jest.fn().mockResolvedValue([proyectoListo, proyectoIncompleto]),
+      sort: jest.fn().mockResolvedValue([proyectoConfigurado, proyectoIncompleto]),
     });
     const saldoSpy = jest.spyOn(proyectoService, "calcularSaldos").mockResolvedValue(new Map([
       ["p1", { saldoDisponible: 5000 }],
@@ -133,19 +133,22 @@ describe("gastos", () => {
     });
 
     expect(findSpy).toHaveBeenCalledWith({ activo: { $ne: false } });
-    expect(saldoSpy).toHaveBeenCalledWith(["p1"]);
+    expect(saldoSpy).toHaveBeenCalledWith(["p1", "p2"]);
     expect(res.render).toHaveBeenCalledWith("gastos/formulario", expect.objectContaining({
       gasto: { proyecto: "" },
-      proyectos: [{ _id: "p1", nombre: "Proyecto Norte", saldoDisponible: 5000 }],
+      proyectos: [
+        { _id: "p1", nombre: "Proyecto Norte", saldoDisponible: 5000 },
+        { _id: "p2", nombre: "Proyecto sin presupuesto completo", saldoDisponible: 0 },
+      ],
     }));
 
     findSpy.mockRestore();
     saldoSpy.mockRestore();
   });
 
-  test("el formulario explica cuando no hay proyectos configurados para rendir", () => {
+  test("el formulario explica cuando no hay proyectos activos disponibles", () => {
     const html = vista("gastos/formulario", { gasto: { proyecto: "" }, proyectos: [] }, "referente_territorial");
-    expect(html).toContain("No hay proyectos activos con presupuesto, período y rubros válidos");
+    expect(html).toContain("No hay proyectos activos disponibles para tu organización");
   });
 });
 

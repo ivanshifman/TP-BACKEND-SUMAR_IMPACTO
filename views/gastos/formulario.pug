@@ -16,9 +16,9 @@ block contenido
             selected=gasto.proyecto && String(gasto.proyecto) === String(p._id)
           )= p.nombre + " - saldo disponible: $" + p.saldoDisponible.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       if proyectos.length === 0
-        small No hay proyectos activos con presupuesto, período y rubros válidos para cargar rendiciones.
+        small No hay proyectos activos disponibles para tu organización.
       else
-        small El saldo se vuelve a validar al registrar el gasto.
+        small El saldo y la configuración del proyecto se validan al registrar el gasto.
 
     .campo
       label(for="monto") Monto

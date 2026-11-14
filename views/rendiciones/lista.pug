@@ -46,5 +46,5 @@ block contenido
                   button.boton.boton-chico(type="submit" name="accion" value="aprobar") Aprobar
                   input(type="text" name="observacion" placeholder="Motivo si observás" maxlength="1000")
                   button.boton.boton-chico.boton-peligro(type="submit" name="accion" value="observar") Observar
-              else
+              else if item.estado !== "aprobado"
                 span= item.observacion || "—"

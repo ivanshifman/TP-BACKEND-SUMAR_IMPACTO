@@ -163,6 +163,30 @@ describe("gastos", () => {
   });
 });
 
+describe("rendiciones", () => {
+  test("la columna Revisión queda vacía para gastos aprobados aunque conserven observaciones", () => {
+    const observacion = "El rubro requiere revisión de Auditoría.";
+    const html = vista("rendiciones/lista", {
+      queryEstado: "",
+      rendiciones: [{
+        _id: "g1",
+        proyecto: { nombre: "Proyecto Norte" },
+        fecha: new Date("2026-11-14"),
+        rubro: "Alimentos",
+        monto: 100,
+        porcentajePresupuesto: 1,
+        estado: "aprobado",
+        cargadoPor: { nombre: "Ana" },
+        comprobante: {},
+        observacion,
+      }],
+    }, "auditoria");
+
+    expect(html).toContain("aprobado");
+    expect(html).not.toContain(observacion);
+  });
+});
+
 describe("administración", () => {
   const usuarios = [
     { _id: "u-actual", nombre: "Yo", email: "yo@x.test", rol: "administrador", activo: true, organizacion: null, debeCambiarPassword: false },
